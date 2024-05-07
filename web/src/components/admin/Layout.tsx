@@ -1,4 +1,4 @@
-import { Header } from "@/components/header/Header";
+import { Header } from "@/components/Header";
 import { AdminSidebar } from "@/components/admin/connectors/AdminSidebar";
 import {
   NotebookIcon,
@@ -19,13 +19,7 @@ import {
   getCurrentUserSS,
 } from "@/lib/userSS";
 import { redirect } from "next/navigation";
-import {
-  FiCpu,
-  FiLayers,
-  FiPackage,
-  FiSettings,
-  FiSlack,
-} from "react-icons/fi";
+import { FiCpu, FiLayers, FiPackage, FiSlack } from "react-icons/fi";
 
 export async function Layout({ children }: { children: React.ReactNode }) {
   const tasks = [getAuthTypeMetadataSS(), getCurrentUserSS()];
@@ -128,10 +122,10 @@ export async function Layout({ children }: { children: React.ReactNode }) {
                     name: (
                       <div className="flex">
                         <RobotIcon size={18} />
-                        <div className="ml-1">Assistants</div>
+                        <div className="ml-1">Personas</div>
                       </div>
                     ),
-                    link: "/admin/assistants",
+                    link: "/admin/personas",
                   },
                   {
                     name: (
@@ -154,7 +148,7 @@ export async function Layout({ children }: { children: React.ReactNode }) {
                         <div className="ml-1">LLM</div>
                       </div>
                     ),
-                    link: "/admin/models/llm",
+                    link: "/admin/keys/openai",
                   },
                   {
                     name: (
@@ -178,20 +172,6 @@ export async function Layout({ children }: { children: React.ReactNode }) {
                       </div>
                     ),
                     link: "/admin/users",
-                  },
-                ],
-              },
-              {
-                name: "Settings",
-                items: [
-                  {
-                    name: (
-                      <div className="flex">
-                        <FiSettings size={18} />
-                        <div className="ml-1">Workspace Settings</div>
-                      </div>
-                    ),
-                    link: "/admin/settings",
                   },
                 ],
               },

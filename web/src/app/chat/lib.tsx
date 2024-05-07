@@ -14,16 +14,13 @@ import {
   RetrievalType,
   StreamingError,
 } from "./interfaces";
-import { Persona } from "../admin/assistants/interfaces";
-import { ReadonlyURLSearchParams } from "next/navigation";
-import { SEARCH_PARAM_NAMES } from "./searchParams";
+import { Persona } from "../admin/personas/interfaces";
+import { MODELS } from "@/lib/constants";
 
-export async function createChatSession(
-  personaId: number,
-  description: string | null
-): Promise<number> {
+export async function createChatSession(personaId: number, modelNumber: number): Promise<number> {
+  const URL = modelNumber === MODELS.ModelOne ? "/v1/api/chat/create-chat-session" : "/v2/api/chat/create-chat-session";
   const createChatSessionResponse = await fetch(
-    "/api/chat/create-chat-session",
+    URL,
     {
       method: "POST",
       headers: {
@@ -31,7 +28,6 @@ export async function createChatSession(
       },
       body: JSON.stringify({
         persona_id: personaId,
-        description,
       }),
     }
   );
@@ -45,9 +41,21 @@ export async function createChatSession(
   return chatSessionResponseJson.chat_session_id;
 }
 
+export interface SendMessageRequest {
+  message: string;
+  parentMessageId: number | null;
+  chatSessionId: number;
+  promptId: number | null | undefined;
+  filters: Filters | null;
+  selectedDocumentIds: number[] | null;
+  modelNumber?: Number;
+  queryOverride?: string;
+  forceSearch?: boolean;
+}
+
 export async function* sendMessage({
   message,
-  fileIds,
+  modelNumber,
   parentMessageId,
   chatSessionId,
   promptId,
@@ -55,32 +63,11 @@ export async function* sendMessage({
   selectedDocumentIds,
   queryOverride,
   forceSearch,
-  modelVersion,
-  temperature,
-  systemPromptOverride,
-  useExistingUserMessage,
-}: {
-  message: string;
-  fileIds: string[];
-  parentMessageId: number | null;
-  chatSessionId: number;
-  promptId: number | null | undefined;
-  filters: Filters | null;
-  selectedDocumentIds: number[] | null;
-  queryOverride?: string;
-  forceSearch?: boolean;
-  // LLM overrides
-  modelVersion?: string;
-  temperature?: number;
-  // prompt overrides
-  systemPromptOverride?: string;
-  // if specified, will use the existing latest user message
-  // and will ignore the specified `message`
-  useExistingUserMessage?: boolean;
-}) {
+}: SendMessageRequest) {
   const documentsAreSelected =
     selectedDocumentIds && selectedDocumentIds.length > 0;
-  const sendMessageResponse = await fetch("/api/chat/send-message", {
+  const URL = modelNumber === MODELS.ModelOne ? "/v1/api/chat/send-message" : "/v2/api/chat/send-message";
+  const sendMessageResponse = await fetch(URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -91,7 +78,6 @@ export async function* sendMessage({
       message: message,
       prompt_id: promptId,
       search_doc_ids: documentsAreSelected ? selectedDocumentIds : null,
-      file_ids: fileIds,
       retrieval_options: !documentsAreSelected
         ? {
             run_search:
@@ -106,19 +92,6 @@ export async function* sendMessage({
           }
         : null,
       query_override: queryOverride,
-      prompt_override: systemPromptOverride
-        ? {
-            system_prompt: systemPromptOverride,
-          }
-        : null,
-      llm_override:
-        temperature || modelVersion
-          ? {
-              temperature,
-              model_version: modelVersion,
-            }
-          : null,
-      use_existing_user_message: useExistingUserMessage,
     }),
   });
   if (!sendMessageResponse.ok) {
@@ -132,8 +105,9 @@ export async function* sendMessage({
   >(sendMessageResponse);
 }
 
-export async function nameChatSession(chatSessionId: number, message: string) {
-  const response = await fetch("/api/chat/rename-chat-session", {
+export async function nameChatSession(chatSessionId: number, message: string, modelNumber: number) {
+  const URL = modelNumber === MODELS.ModelOne ? "/v1/api/chat/rename-chat-session": "/v2/api/chat/rename-chat-session";
+  const response = await fetch(URL, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -150,9 +124,12 @@ export async function nameChatSession(chatSessionId: number, message: string) {
 export async function handleChatFeedback(
   messageId: number,
   feedback: FeedbackType,
-  feedbackDetails: string
+  feedbackDetails: string,
+  modelNumber: number
 ) {
-  const response = await fetch("/api/chat/create-chat-message-feedback", {
+  const URL = modelNumber === MODELS.ModelOne ? "/v1/api/chat/create-chat-message-feedback" : "/v2/api/chat/create-chat-message-feedback";
+
+  const response = await fetch(URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -170,7 +147,7 @@ export async function renameChatSession(
   chatSessionId: number,
   newName: string
 ) {
-  const response = await fetch(`/api/chat/rename-chat-session`, {
+  const response = await fetch(`/v1/api/chat/rename-chat-session`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -186,7 +163,7 @@ export async function renameChatSession(
 
 export async function deleteChatSession(chatSessionId: number) {
   const response = await fetch(
-    `/api/chat/delete-chat-session/${chatSessionId}`,
+    `/v1/api/chat/delete-chat-session/${chatSessionId}`,
     {
       method: "DELETE",
     }
@@ -367,7 +344,6 @@ export function processRawChatHistory(rawMessages: BackendMessage[]) {
         messageId: messageInfo.message_id,
         message: messageInfo.message,
         type: messageInfo.message_type as "user" | "assistant",
-        files: messageInfo.files,
         // only include these fields if this is an assistant message so that
         // this is identical to what is computed at streaming time
         ...(messageInfo.message_type === "assistant"
@@ -386,60 +362,4 @@ export function processRawChatHistory(rawMessages: BackendMessage[]) {
 
 export function personaIncludesRetrieval(selectedPersona: Persona) {
   return selectedPersona.num_chunks !== 0;
-}
-
-const PARAMS_TO_SKIP = [
-  SEARCH_PARAM_NAMES.SUBMIT_ON_LOAD,
-  SEARCH_PARAM_NAMES.USER_MESSAGE,
-  SEARCH_PARAM_NAMES.TITLE,
-  // only use these if explicitly passed in
-  SEARCH_PARAM_NAMES.CHAT_ID,
-  SEARCH_PARAM_NAMES.PERSONA_ID,
-];
-
-export function buildChatUrl(
-  existingSearchParams: ReadonlyURLSearchParams,
-  chatSessionId: number | null,
-  personaId: number | null
-) {
-  const finalSearchParams: string[] = [];
-  if (chatSessionId) {
-    finalSearchParams.push(`${SEARCH_PARAM_NAMES.CHAT_ID}=${chatSessionId}`);
-  }
-  if (personaId !== null) {
-    finalSearchParams.push(`${SEARCH_PARAM_NAMES.PERSONA_ID}=${personaId}`);
-  }
-
-  existingSearchParams.forEach((value, key) => {
-    if (!PARAMS_TO_SKIP.includes(key)) {
-      finalSearchParams.push(`${key}=${value}`);
-    }
-  });
-  const finalSearchParamsString = finalSearchParams.join("&");
-
-  if (finalSearchParamsString) {
-    return `/chat?${finalSearchParamsString}`;
-  }
-
-  return "/chat";
-}
-
-export async function uploadFilesForChat(
-  files: File[]
-): Promise<[string[], string | null]> {
-  const formData = new FormData();
-  files.forEach((file) => {
-    formData.append("files", file);
-  });
-
-  const response = await fetch("/api/chat/file", {
-    method: "POST",
-    body: formData,
-  });
-  if (!response.ok) {
-    return [[], `Failed to upload files - ${(await response.json()).detail}`];
-  }
-  const responseJson = await response.json();
-
-  return [responseJson.file_ids as string[], null];
 }

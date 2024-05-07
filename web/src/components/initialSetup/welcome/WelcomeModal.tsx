@@ -9,10 +9,8 @@ import { COMPLETED_WELCOME_FLOW_COOKIE } from "./constants";
 import { FiCheckCircle, FiMessageSquare, FiShare2 } from "react-icons/fi";
 import { useEffect, useState } from "react";
 import { BackButton } from "@/components/BackButton";
-import { ApiKeyForm } from "@/components/llm/ApiKeyForm";
-import { WellKnownLLMProviderDescriptor } from "@/app/admin/models/llm/interfaces";
-import { checkLlmProvider } from "./lib";
-import { User } from "@/lib/types";
+import { ApiKeyForm } from "@/components/openai/ApiKeyForm";
+import { checkApiKey } from "@/components/openai/ApiKeyModal";
 
 function setWelcomeFlowComplete() {
   Cookies.set(COMPLETED_WELCOME_FLOW_COOKIE, "true", { expires: 365 });
@@ -54,26 +52,20 @@ function UsageTypeSection({
   );
 }
 
-export function _WelcomeModal({ user }: { user: User | null }) {
+export function _WelcomeModal() {
   const router = useRouter();
   const [selectedFlow, setSelectedFlow] = useState<null | "search" | "chat">(
     null
   );
   const [isHidden, setIsHidden] = useState(false);
   const [apiKeyVerified, setApiKeyVerified] = useState<boolean>(false);
-  const [providerOptions, setProviderOptions] = useState<
-    WellKnownLLMProviderDescriptor[]
-  >([]);
 
   useEffect(() => {
-    async function fetchProviderInfo() {
-      const { providers, options, defaultCheckSuccessful } =
-        await checkLlmProvider(user);
-      setApiKeyVerified(providers.length > 0 && defaultCheckSuccessful);
-      setProviderOptions(options);
-    }
-
-    fetchProviderInfo();
+    checkApiKey().then((error) => {
+      if (!error) {
+        setApiKeyVerified(true);
+      }
+    });
   }, []);
 
   if (isHidden) {
@@ -86,27 +78,30 @@ export function _WelcomeModal({ user }: { user: User | null }) {
     case "search":
       title = undefined;
       body = (
-        <div className="max-h-[85vh] overflow-y-auto px-4 pb-4">
+        <>
           <BackButton behaviorOverride={() => setSelectedFlow(null)} />
           <div className="mt-3">
-            <Text className="font-bold flex">
+            <Text className="font-bold mt-6 mb-2 flex">
               {apiKeyVerified && (
                 <FiCheckCircle className="my-auto mr-2 text-success" />
               )}
-              Step 1: Setup an LLM
+              Step 1: Provide OpenAI API Key
             </Text>
             <div>
               {apiKeyVerified ? (
-                <Text className="mt-2">
-                  LLM setup complete!
+                <div>
+                  API Key setup complete!
                   <br /> <br />
                   If you want to change the key later, you&apos;ll be able to
                   easily to do so in the Admin Panel.
-                </Text>
+                </div>
               ) : (
                 <ApiKeyForm
-                  onSuccess={() => setApiKeyVerified(true)}
-                  providerOptions={providerOptions}
+                  handleResponse={async (response) => {
+                    if (response.ok) {
+                      setApiKeyVerified(true);
+                    }
+                  }}
                 />
               )}
             </div>
@@ -114,12 +109,12 @@ export function _WelcomeModal({ user }: { user: User | null }) {
               Step 2: Connect Data Sources
             </Text>
             <div>
-              <Text>
-                Connectors are the way that Danswer gets data from your
+              <p>
+                Connectors are the way that DocuDive gets data from your
                 organization&apos;s various data sources. Once setup, we&apos;ll
-                automatically sync data from your apps and docs into Danswer, so
+                automatically sync data from your apps and docs into DocuDive, so
                 you can search through all of them in one place.
-              </Text>
+              </p>
 
               <div className="flex mt-3">
                 <Link
@@ -138,37 +133,59 @@ export function _WelcomeModal({ user }: { user: User | null }) {
               </div>
             </div>
           </div>
-        </div>
+        </>
       );
       break;
     case "chat":
       title = undefined;
       body = (
-        <div className="mt-3 max-h-[85vh] overflow-y-auto px-4 pb-4">
+        <>
           <BackButton behaviorOverride={() => setSelectedFlow(null)} />
 
           <div className="mt-3">
-            <Text className="font-bold flex">
+            <div>
+              To start using DocuDive as a secure ChatGPT, we just need to
+              configure our LLM!
+              <br />
+              <br />
+              DocuDive supports connections with a wide range of LLMs, including
+              self-hosted open-source LLMs. For more details, check out the{" "}
+              <a
+                className="text-link"
+                href="https://docs.DocuDive.dev/gen_ai_configs/overview"
+              >
+                documentation
+              </a>
+              .
+              <br />
+              <br />
+              If you haven&apos;t done anything special with the Gen AI configs,
+              then we default to use OpenAI.
+            </div>
+
+            <Text className="font-bold mt-6 mb-2 flex">
               {apiKeyVerified && (
                 <FiCheckCircle className="my-auto mr-2 text-success" />
               )}
-              Step 1: Setup an LLM
+              Step 1: Provide LLM API Key
             </Text>
             <div>
               {apiKeyVerified ? (
-                <Text className="mt-2">
+                <div>
                   LLM setup complete!
                   <br /> <br />
                   If you want to change the key later or choose a different LLM,
-                  you&apos;ll be able to easily to do so in the Admin Panel.
-                </Text>
-              ) : (
-                <div>
-                  <ApiKeyForm
-                    onSuccess={() => setApiKeyVerified(true)}
-                    providerOptions={providerOptions}
-                  />
+                  you&apos;ll be able to easily to do so in the Admin Panel / by
+                  changing some environment variables.
                 </div>
+              ) : (
+                <ApiKeyForm
+                  handleResponse={async (response) => {
+                    if (response.ok) {
+                      setApiKeyVerified(true);
+                    }
+                  }}
+                />
               )}
             </div>
 
@@ -176,7 +193,7 @@ export function _WelcomeModal({ user }: { user: User | null }) {
               Step 2: Start Chatting!
             </Text>
 
-            <Text>
+            <div>
               Click the button below to start chatting with the LLM setup above!
               Don&apos;t worry, if you do decide later on you want to connect
               your organization&apos;s knowledge, you can always do that in the{" "}
@@ -192,7 +209,7 @@ export function _WelcomeModal({ user }: { user: User | null }) {
                 Admin Panel
               </Link>
               .
-            </Text>
+            </div>
 
             <div className="flex mt-3">
               <Link
@@ -211,25 +228,25 @@ export function _WelcomeModal({ user }: { user: User | null }) {
               </Link>
             </div>
           </div>
-        </div>
+        </>
       );
       break;
     default:
-      title = "🎉 Welcome to Danswer";
+      title = "🎉 Welcome to DocuDive";
       body = (
         <>
           <div>
-            <Text>How are you planning on using Danswer?</Text>
+            <p>How are you planning on using DocuDive?</p>
           </div>
           <Divider />
           <UsageTypeSection
             title="Search / Chat with Knowledge"
             description={
-              <Text>
+              <div>
                 If you&apos;re looking to search through, chat with, or ask
                 direct questions of your organization&apos;s knowledge, then
                 this is the option for you!
-              </Text>
+              </div>
             }
             callToAction="Get Started"
             onClick={() => setSelectedFlow("search")}
@@ -238,10 +255,10 @@ export function _WelcomeModal({ user }: { user: User | null }) {
           <UsageTypeSection
             title="Secure ChatGPT"
             description={
-              <Text>
+              <>
                 If you&apos;re looking for a pure ChatGPT-like experience, then
                 this is the option for you!
-              </Text>
+              </>
             }
             icon={FiMessageSquare}
             callToAction="Get Started"

@@ -71,7 +71,7 @@ export function BasicSelectable({
   fullWidth?: boolean;
 }) {
   return (
-    <div
+    <button
       className={`
         rounded
         font-medium 
@@ -84,6 +84,6 @@ export function BasicSelectable({
         ${fullWidth ? "w-full" : ""}`}
     >
       {children}
-    </div>
+    </button>
   );
 }

@@ -13,40 +13,36 @@ const nextConfig = {
     // web_server and api_server are on different machines.
     if (process.env.NODE_ENV === "production") return [];
 
-    return [
-      {
+    return [{
         source: "/api/:path*",
-        destination: "http://127.0.0.1:8080/:path*", // Proxy to Backend
-      },
-    ];
+        destination: `${process.env.MODEl_ONE_URL}/:path*`,
+    }];
   },
   redirects: async () => {
     // In production, something else (nginx in the one box setup) should take
     // care of this redirect. TODO (chris): better support setups where
     // web_server and api_server are on different machines.
-    const defaultRedirects = [];
+    const defaultRedirects = [
+      {
+        source: "/",
+        destination: "/search",
+        permanent: true,
+      },
+      {
+        source: '/v2/api/:path*',  // Match all paths starting with /v2/api/
+        destination: `${process.env.MODEl_TWO_URL}/:path*`,  // Redirect these requests
+        permanent: true
+      },
+      {
+        source: '/v1/api/:path*',  // Match all paths starting with /v1/api/
+        destination: `${process.env.MODEl_ONE_URL}/:path*`,  // Redirect these requests
+        permanent: true
+      }
+    ];
 
     if (process.env.NODE_ENV === "production") return defaultRedirects;
 
-    return defaultRedirects.concat([
-      {
-        source: "/api/chat/send-message:params*",
-        destination: "http://127.0.0.1:8080/chat/send-message:params*", // Proxy to Backend
-        permanent: true,
-      },
-      {
-        source: "/api/query/stream-answer-with-quote:params*",
-        destination:
-          "http://127.0.0.1:8080/query/stream-answer-with-quote:params*", // Proxy to Backend
-        permanent: true,
-      },
-      {
-        source: "/api/query/stream-query-validation:params*",
-        destination:
-          "http://127.0.0.1:8080/query/stream-query-validation:params*", // Proxy to Backend
-        permanent: true,
-      },
-    ]);
+    return defaultRedirects.concat([]);
   },
   publicRuntimeConfig: {
     version,

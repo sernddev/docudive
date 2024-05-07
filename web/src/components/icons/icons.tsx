@@ -52,7 +52,6 @@ import document360Icon from "../../../public/Document360.png";
 import googleSitesIcon from "../../../public/GoogleSites.png";
 import zendeskIcon from "../../../public/Zendesk.svg";
 import sharepointIcon from "../../../public/Sharepoint.png";
-import discourseIcon from "../../../public/Discourse.png";
 import { FaRobot } from "react-icons/fa";
 
 interface IconProps {
@@ -599,29 +598,5 @@ export const ZendeskIcon = ({
     className={`w-[${size}px] h-[${size}px] ` + className}
   >
     <Image src={zendeskIcon} alt="Logo" width="96" height="96" />
-  </div>
-);
-
-export const DiscourseIcon = ({
-  size = 16,
-  className = defaultTailwindCSS,
-}: IconProps) => (
-  <div
-    style={{ width: `${size}px`, height: `${size}px` }}
-    className={`w-[${size}px] h-[${size}px] ` + className}
-  >
-    <Image src={discourseIcon} alt="Logo" width="96" height="96" />
-  </div>
-);
-
-export const AxeroIcon = ({
-  size = 16,
-  className = defaultTailwindCSS,
-}: IconProps) => (
-  <div
-    style={{ width: `${size}px`, height: `${size}px` }}
-    className={`w-[${size}px] h-[${size}px] ` + className}
-  >
-    <Image src="/Axero.jpeg" alt="Logo" width="96" height="96" />
   </div>
 );

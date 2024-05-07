@@ -76,7 +76,7 @@ const MainSection = () => {
         The Sharepoint connector allows you to index and search through your
         Sharepoint files. Once setup, your Word documents, Excel files,
         PowerPoint presentations, OneNote notebooks, PDFs, and uploaded files
-        will be queryable within Danswer.
+        will be queryable within DocuDive.
       </Text>
 
       <Title className="mb-2 mt-6 ml-auto mr-auto">
@@ -107,7 +107,7 @@ const MainSection = () => {
             (tenant) ID, and Client Secret. You can follow the guide{" "}
             <a
               target="_blank"
-              href="https://docs.danswer.dev/connectors/sharepoint"
+              href="https://docs.DocuDive.dev/connectors/sharepoint"
               className="text-link"
             >
               here

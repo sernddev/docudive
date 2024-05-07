@@ -37,12 +37,14 @@ const Main = () => {
     data: credentialsData,
     isLoading: isCredentialsLoading,
     error: isCredentialsError,
+    isValidating: isCredentialsValidating,
     refreshCredentials,
   } = usePublicCredentials();
 
   if (
-    (!connectorIndexingStatuses && isConnectorIndexingStatusesLoading) ||
-    (!credentialsData && isCredentialsLoading)
+    isConnectorIndexingStatusesLoading ||
+    isCredentialsLoading ||
+    isCredentialsValidating
   ) {
     return <LoadingAnimation text="Loading" />;
   }
@@ -106,7 +108,7 @@ const Main = () => {
             To use the Linear connector, first follow the guide{" "}
             <a
               className="text-blue-500"
-              href="https://docs.danswer.dev/connectors/linear"
+              href="https://docs.DocuDive.dev/connectors/linear"
               target="_blank"
             >
               here

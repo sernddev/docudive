@@ -1,10 +1,13 @@
 "use client";
 
-import { ThreeDotsLoader } from "@/components/Loading";
+import { LoadingAnimation, ThreeDotsLoader } from "@/components/Loading";
 import { AdminPageTitle } from "@/components/admin/Title";
-import { errorHandlingFetcher } from "@/lib/fetcher";
-import { Button, Card, Text, Title } from "@tremor/react";
-import { FiPackage } from "react-icons/fi";
+import { KeyIcon, TrashIcon } from "@/components/icons/icons";
+import { ApiKeyForm } from "@/components/openai/ApiKeyForm";
+import { GEN_AI_API_KEY_URL } from "@/components/openai/constants";
+import { errorHandlingFetcher, fetcher } from "@/lib/fetcher";
+import { Button, Divider, Text, Title } from "@tremor/react";
+import { FiCpu, FiPackage } from "react-icons/fi";
 import useSWR, { mutate } from "swr";
 import { ModelOption, ModelSelector } from "./ModelSelector";
 import { useState } from "react";
@@ -13,18 +16,17 @@ import { ReindexingProgressTable } from "./ReindexingProgressTable";
 import { Modal } from "@/components/Modal";
 import {
   AVAILABLE_MODELS,
-  EmbeddingModelDescriptor,
+  EmbeddingModelResponse,
   INVALID_OLD_MODEL,
-  fillOutEmeddingModelDescriptor,
 } from "./embeddingModels";
 import { ErrorCallout } from "@/components/ErrorCallout";
 import { Connector, ConnectorIndexingStatus } from "@/lib/types";
 import Link from "next/link";
-import { CustomModelForm } from "./CustomModelForm";
 
 function Main() {
-  const [tentativeNewEmbeddingModel, setTentativeNewEmbeddingModel] =
-    useState<EmbeddingModelDescriptor | null>(null);
+  const [tentativeNewEmbeddingModel, setTentativeNewEmbeddingModel] = useState<
+    string | null
+  >(null);
   const [isCancelling, setIsCancelling] = useState<boolean>(false);
   const [showAddConnectorPopup, setShowAddConnectorPopup] =
     useState<boolean>(false);
@@ -33,16 +35,16 @@ function Main() {
     data: currentEmeddingModel,
     isLoading: isLoadingCurrentModel,
     error: currentEmeddingModelError,
-  } = useSWR<EmbeddingModelDescriptor>(
+  } = useSWR<EmbeddingModelResponse>(
     "/api/secondary-index/get-current-embedding-model",
     errorHandlingFetcher,
     { refreshInterval: 5000 } // 5 seconds
   );
   const {
-    data: futureEmbeddingModel,
+    data: futureEmeddingModel,
     isLoading: isLoadingFutureModel,
     error: futureEmeddingModelError,
-  } = useSWR<EmbeddingModelDescriptor | null>(
+  } = useSWR<EmbeddingModelResponse>(
     "/api/secondary-index/get-secondary-embedding-model",
     errorHandlingFetcher,
     { refreshInterval: 5000 } // 5 seconds
@@ -61,20 +63,24 @@ function Main() {
     { refreshInterval: 5000 } // 5 seconds
   );
 
-  const onSelect = async (model: EmbeddingModelDescriptor) => {
+  const onSelect = async (modelName: string) => {
     if (currentEmeddingModel?.model_name === INVALID_OLD_MODEL) {
-      await onConfirm(model);
+      await onConfirm(modelName);
     } else {
-      setTentativeNewEmbeddingModel(model);
+      setTentativeNewEmbeddingModel(modelName);
     }
   };
 
-  const onConfirm = async (model: EmbeddingModelDescriptor) => {
+  const onConfirm = async (modelName: string) => {
+    const modelDescriptor = AVAILABLE_MODELS.find(
+      (model) => model.model_name === modelName
+    );
+
     const response = await fetch(
       "/api/secondary-index/set-new-embedding-model",
       {
         method: "POST",
-        body: JSON.stringify(model),
+        body: JSON.stringify(modelDescriptor),
         headers: {
           "Content-Type": "application/json",
         },
@@ -114,33 +120,26 @@ function Main() {
   if (
     currentEmeddingModelError ||
     !currentEmeddingModel ||
-    futureEmeddingModelError
+    futureEmeddingModelError ||
+    !futureEmeddingModel
   ) {
     return <ErrorCallout errorTitle="Failed to fetch embedding model status" />;
   }
 
   const currentModelName = currentEmeddingModel.model_name;
-  const currentModel =
-    AVAILABLE_MODELS.find((model) => model.model_name === currentModelName) ||
-    fillOutEmeddingModelDescriptor(currentEmeddingModel);
+  const currentModel = AVAILABLE_MODELS.find(
+    (model) => model.model_name === currentModelName
+  );
 
-  const newModelSelection = futureEmbeddingModel
-    ? AVAILABLE_MODELS.find(
-        (model) => model.model_name === futureEmbeddingModel.model_name
-      ) || fillOutEmeddingModelDescriptor(futureEmbeddingModel)
-    : null;
+  const newModelSelection = AVAILABLE_MODELS.find(
+    (model) => model.model_name === futureEmeddingModel.model_name
+  );
 
   return (
     <div>
       {tentativeNewEmbeddingModel && (
         <ModelSelectionConfirmaionModal
           selectedModel={tentativeNewEmbeddingModel}
-          isCustom={
-            AVAILABLE_MODELS.find(
-              (model) =>
-                model.model_name === tentativeNewEmbeddingModel.model_name
-            ) === undefined
-          }
           onConfirm={() => onConfirm(tentativeNewEmbeddingModel)}
           onCancel={() => setTentativeNewEmbeddingModel(null)}
         />
@@ -157,9 +156,9 @@ function Main() {
               To complete the initial setup, let&apos;s add a connector!
               <br />
               <br />
-              Connectors are the way that Danswer gets data from your
+              Connectors are the way that DocuDive gets data from your
               organization&apos;s various data sources. Once setup, we&apos;ll
-              automatically sync data from your apps and docs into Danswer, so
+              automatically sync data from your apps and docs into DocuDive , so
               you can search all through all of them in one place.
             </div>
             <div className="flex">
@@ -197,7 +196,7 @@ function Main() {
 
       <Text>
         Embedding models are used to generate embeddings for your documents,
-        which then power Danswer&apos;s search.
+        which then power DocuDive&apos;s search.
       </Text>
 
       {currentModel ? (
@@ -244,49 +243,12 @@ function Main() {
               </>
             )}
 
-            <Text className="mb-4">
-              Below are a curated selection of quality models that we recommend
-              you choose from.
-            </Text>
-
             <ModelSelector
               modelOptions={AVAILABLE_MODELS.filter(
                 (modelOption) => modelOption.model_name !== currentModelName
               )}
               setSelectedModel={onSelect}
             />
-
-            <Text className="mt-6">
-              Alternatively, (if you know what you&apos;re doing) you can
-              specify a{" "}
-              <a
-                target="_blank"
-                href="https://www.sbert.net/"
-                className="text-link"
-              >
-                SentenceTransformers
-              </a>
-              -compatible model of your choice below. The rough list of
-              supported models can be found{" "}
-              <a
-                target="_blank"
-                href="https://huggingface.co/models?library=sentence-transformers&sort=trending"
-                className="text-link"
-              >
-                here
-              </a>
-              .
-              <br />
-              <b>NOTE:</b> not all models listed will work with Danswer, since
-              some have unique interfaces or special requirements. If in doubt,
-              reach out to the Danswer team.
-            </Text>
-
-            <div className="w-full flex">
-              <Card className="mt-4 2xl:w-4/6 mx-auto">
-                <CustomModelForm onSubmit={onSelect} />
-              </Card>
-            </div>
           </div>
         ) : (
           connectors &&
@@ -310,10 +272,10 @@ function Main() {
 
                 <Text className="my-4">
                   The table below shows the re-indexing progress of all existing
-                  connectors. Once all connectors have been re-indexed
-                  successfully, the new model will be used for all search
-                  queries. Until then, we will use the old model so that no
-                  downtime is necessary during this transition.
+                  connectors. Once all connectors have been re-indexed, the new
+                  model will be used for all search queries. Until then, we will
+                  use the old model so that no downtime is necessary during this
+                  transition.
                 </Text>
 
                 {isLoadingOngoingReIndexingStatus ? (

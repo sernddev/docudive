@@ -18,53 +18,25 @@ import { ChatSessionDisplay } from "./SessionDisplay";
 import { ChatSession } from "../interfaces";
 import { groupSessionsByDateRange } from "../lib";
 import {
+  FOOTER_PADDING,
   HEADER_PADDING,
   NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA,
 } from "@/lib/constants";
-import { ChatTab } from "./ChatTab";
-import { AssistantsTab } from "./AssistantsTab";
-import { Persona } from "@/app/admin/assistants/interfaces";
-import Cookies from "js-cookie";
-import { SIDEBAR_TAB_COOKIE, Tabs } from "./constants";
+
+interface ChatSidebarProps {
+  existingChats: ChatSession[];
+  currentChatSession: ChatSession | null | undefined;
+  user: User | null;
+}
 
 export const ChatSidebar = ({
   existingChats,
   currentChatSession,
-  personas,
-  onPersonaChange,
   user,
-  defaultTab,
-}: {
-  existingChats: ChatSession[];
-  currentChatSession: ChatSession | null | undefined;
-  personas: Persona[];
-  onPersonaChange: (persona: Persona | null) => void;
-  user: User | null;
-  defaultTab?: Tabs;
-}) => {
+}: ChatSidebarProps) => {
   const router = useRouter();
 
-  const [openTab, _setOpenTab] = useState(defaultTab || Tabs.CHATS);
-  const setOpenTab = (tab: Tabs) => {
-    Cookies.set(SIDEBAR_TAB_COOKIE, tab);
-    _setOpenTab(tab);
-  };
-
-  function TabOption({ tab }: { tab: Tabs }) {
-    return (
-      <div
-        className={
-          "font-bold p-1 rounded-lg hover:bg-hover cursor-pointer " +
-          (openTab === tab ? "bg-hover" : "")
-        }
-        onClick={() => {
-          setOpenTab(tab);
-        }}
-      >
-        {tab}
-      </div>
-    );
-  }
+  const groupedChatSessions = groupSessionsByDateRange(existingChats);
 
   const [userInfoVisible, setUserInfoVisible] = useState(false);
   const userInfoRef = useRef<HTMLDivElement>(null);
@@ -107,10 +79,10 @@ export const ChatSidebar = ({
   return (
     <div
       className={`
-        flex-none
-        w-64
-        3xl:w-72
+        w-72
+        2xl:w-80
         ${HEADER_PADDING}
+        ${FOOTER_PADDING}
         border-r 
         border-border 
         flex 
@@ -119,52 +91,57 @@ export const ChatSidebar = ({
         transition-transform`}
       id="chat-sidebar"
     >
-      <div className="flex w-full mx-4 mt-4 text-sm gap-x-4 pb-2 border-b border-border">
-        <TabOption tab={Tabs.CHATS} />
-        <TabOption tab={Tabs.ASSISTANTS} />
-      </div>
+      <Link
+        href={
+          "/chat" +
+          (NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA && currentChatSession
+            ? `?personaId=${currentChatSession.persona_id}`
+            : "")
+        }
+        onClick={()=> {router.push("/chat"); window.location.reload();}}
+        className="mx-3 mt-5"
+      >
+        <BasicClickable fullWidth>
+          <div className="flex text-sm">
+            <FiPlusSquare className="my-auto mr-2" /> New Chat
+          </div>
+        </BasicClickable>
+      </Link>
 
-      {openTab == Tabs.CHATS && (
-        <>
-          <Link
-            href={
-              "/chat" +
-              (NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA &&
-              currentChatSession
-                ? `?assistantId=${currentChatSession.persona_id}`
-                : "")
+      <div className="mt-1 pb-1 mb-1 ml-3 overflow-y-auto h-full">
+        {Object.entries(groupedChatSessions).map(
+          ([dateRange, chatSessions]) => {
+            if (chatSessions.length > 0) {
+              return (
+                <div key={dateRange}>
+                  <div className="text-xs text-subtle flex pb-0.5 mb-1.5 mt-5 font-bold">
+                    {dateRange}
+                  </div>
+                  {chatSessions.map((chat) => {
+                    const isSelected = currentChatId === chat.id;
+                    return (
+                      <div key={chat.id} className="mr-3">
+                        <ChatSessionDisplay
+                          chatSession={chat}
+                          isSelected={isSelected}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              );
             }
-            className="mx-3 mt-5"
-          >
-            <BasicClickable fullWidth>
-              <div className="flex text-sm">
-                <FiPlusSquare className="my-auto mr-2" /> New Chat
-              </div>
-            </BasicClickable>
-          </Link>
-          <ChatTab
-            existingChats={existingChats}
-            currentChatId={currentChatId}
-          />
-        </>
-      )}
-
-      {openTab == Tabs.ASSISTANTS && (
-        <>
-          <Link href="/assistants/new" className="mx-3 mt-5">
-            <BasicClickable fullWidth>
-              <div className="flex text-sm">
-                <FiPlusSquare className="my-auto mr-2" /> New Assistant
-              </div>
-            </BasicClickable>
-          </Link>
-          <AssistantsTab
-            personas={personas}
-            onPersonaChange={onPersonaChange}
-            user={user}
-          />
-        </>
-      )}
+          }
+        )}
+        {/* {existingChats.map((chat) => {
+          const isSelected = currentChatId === chat.id;
+          return (
+            <div key={chat.id} className="mr-3">
+              <ChatSessionDisplay chatSession={chat} isSelected={isSelected} />
+            </div>
+          );
+        })} */}
+      </div>
 
       <div
         className="mt-auto py-2 border-t border-border px-3"
@@ -183,14 +160,15 @@ export const ChatSidebar = ({
                 className="flex py-3 px-4 cursor-pointer hover:bg-hover"
               >
                 <FiSearch className="my-auto mr-2" />
-                Danswer Search
+                DocuDive Search
               </Link>
               <Link
                 href="/chat"
+                onClick={() => router.push("/chat")}
                 className="flex py-3 px-4 cursor-pointer hover:bg-hover"
               >
                 <FiMessageSquare className="my-auto mr-2" />
-                Danswer Chat
+               DocuDiver Chat
               </Link>
               {(!user || user.role === "admin") && (
                 <Link

@@ -30,3 +30,106 @@
   width: 8px; /* Vertical scrollbar width */
   height: 8px; /* Horizontal scrollbar height */
 }
+
+.chat-container-height {
+  height: calc(100vh - 150px);
+}
+body{
+  overflow-y: hidden;
+}
+.chat-window{
+  border-right: 1px solid #ccc;
+  float: left;
+  padding-top: 65px;
+}
+.chat-select-box{
+  position: fixed;
+  right:80px;
+  z-index: 111;
+  top:0px
+}
+.w100{
+  width: 100% !important;
+}
+.set-margin-right{
+  margin-right: 2rem;
+}
+.chat-modal-item{
+  background-color: #bbb;
+  color: #000;
+  display: flex;
+  align-items: center;
+  flex-direction: column-reverse;
+  padding: 5px;
+  font-weight: bold;
+  position: fixed;
+  top:65px;
+}
+.rect-check{
+  width: 24px;
+  height: 24px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  box-sizing: border-box;
+  background-color: #b89108;
+  cursor: pointer;
+}
+.rect-check.checked{
+  background-color: #b89108;
+}
+.rect-check.unchecked{
+  background-color: #b89108;
+}
+.set-modal-check{
+  position: fixed;
+  z-index: 111;
+  display: flex;
+  align-items: flex-end;
+  top:20px;
+}
+
+.set-modal-check > div, .set-modal-radio > div{
+  display: flex;
+  width: 150px;
+}
+.set-modal-radio{
+
+}
+.w33{
+  width: 33.3%;
+}
+.w50{
+  width: 50%;
+}
+.checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The checkbox */
+.model-check-box > input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  -o-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 15px;
+  box-shadow: 0 0 0 2px #b89108; /* Outer border */
+  border: 3px solid white; /* Inner border */
+  cursor: pointer;
+}
+
+/* The checkbox - when checked */
+.model-check-box > input:checked {
+  background-color: #b89108; /* The "check" */
+}
+.admin-model-privileges > p{
+  font-weight: bold;
+  color: #000;
+  font-size: 16px;
+}

@@ -16,15 +16,16 @@ export const GOOGLE_DRIVE_AUTH_IS_ADMIN_COOKIE_NAME =
 export const SEARCH_TYPE_COOKIE_NAME = "search_type";
 
 export const HEADER_PADDING = "pt-[64px]";
+export const FOOTER_PADDING = "pb-[84px]";
+
+export enum MODELS {
+  ModelOne = 1,
+  ModelTwo = 2
+};
 
 // NOTE: since this is a `NEXT_PUBLIC_` variable, it will be set at
 // build-time
 // TODO: consider moving this to an API call so that the api_server
 // can be the single source of truth
 export const EE_ENABLED =
-  process.env.NEXT_PUBLIC_ENABLE_PAID_EE_FEATURES?.toLowerCase() === "true";
-
-// Enterprise-only settings
-export const CUSTOM_ANALYTICS_ENABLED = process.env.CUSTOM_ANALYTICS_SECRET_KEY
-  ? true
-  : false;
+  process.env.NEXT_PUBLIC_EE_ENABLED?.toLowerCase() === "true";

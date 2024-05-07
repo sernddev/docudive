@@ -1,5 +1,5 @@
 import { SearchSection } from "@/components/search/SearchSection";
-import { Header } from "@/components/header/Header";
+import { Header } from "@/components/Header";
 import {
   AuthTypeMetadata,
   getAuthTypeMetadataSS,
@@ -7,19 +7,19 @@ import {
 } from "@/lib/userSS";
 import { redirect } from "next/navigation";
 import { HealthCheckBanner } from "@/components/health/healthcheck";
-import { ApiKeyModal } from "@/components/llm/ApiKeyModal";
+import { ApiKeyModal } from "@/components/openai/ApiKeyModal";
 import { fetchSS } from "@/lib/utilsSS";
 import { CCPairBasicInfo, DocumentSet, Tag, User } from "@/lib/types";
 import { cookies } from "next/headers";
 import { SearchType } from "@/lib/search/interfaces";
-import { Persona } from "../admin/assistants/interfaces";
+import { Persona } from "../admin/personas/interfaces";
 import {
   WelcomeModal,
   hasCompletedWelcomeFlowSS,
 } from "@/components/initialSetup/welcome/WelcomeModalWrapper";
 import { unstable_noStore as noStore } from "next/cache";
 import { InstantSSRAutoRefresh } from "@/components/SSRAutoRefresh";
-import { personaComparator } from "../admin/assistants/lib";
+import { personaComparator } from "../admin/personas/lib";
 import { FullEmbeddingModelResponse } from "../admin/models/embedding/embeddingModels";
 import { NoSourcesModal } from "@/components/initialSetup/search/NoSourcesModal";
 import { NoCompleteSourcesModal } from "@/components/initialSetup/search/NoCompleteSourceModal";
@@ -49,7 +49,7 @@ export default async function Home() {
     | AuthTypeMetadata
     | FullEmbeddingModelResponse
     | null
-  )[] = [null, null, null, null, null, null];
+  )[] = [null, null, null, null, null, null, null];
   try {
     results = await Promise.all(tasks);
   } catch (e) {
@@ -90,7 +90,12 @@ export default async function Home() {
 
   let personas: Persona[] = [];
   if (personaResponse?.ok) {
-    personas = await personaResponse.json();
+    personas = ((await personaResponse.json()) as Persona[]).map((persona: Persona)=> {
+      if(persona.name === 'Danswer') {
+        persona.name = 'DocuDive';
+      }
+      return persona;
+    });
   } else {
     console.log(`Failed to fetch personas - ${personaResponse?.status}`);
   }
@@ -147,10 +152,10 @@ export default async function Home() {
       <div className="m-3">
         <HealthCheckBanner />
       </div>
-      {shouldShowWelcomeModal && <WelcomeModal user={user} />}
+      {shouldShowWelcomeModal && <WelcomeModal />}
       {!shouldShowWelcomeModal &&
         !shouldDisplayNoSourcesModal &&
-        !shouldDisplaySourcesIncompleteModal && <ApiKeyModal user={user} />}
+        !shouldDisplaySourcesIncompleteModal && <ApiKeyModal />}
       {shouldDisplayNoSourcesModal && <NoSourcesModal />}
       {shouldDisplaySourcesIncompleteModal && (
         <NoCompleteSourcesModal ccPairs={ccPairs} />
