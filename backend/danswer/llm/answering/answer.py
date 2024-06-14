@@ -45,6 +45,8 @@ from danswer.tools.search.search_tool import FINAL_CONTEXT_DOCUMENTS
 from danswer.tools.search.search_tool import SEARCH_RESPONSE_SUMMARY_ID
 from danswer.tools.search.search_tool import SearchResponseSummary
 from danswer.tools.search.search_tool import SearchTool
+from danswer.tools.textsql.sql_generation_tool import SqlGenerationTool, SqlGenerationResponse, \
+    SQL_GENERATION_RESPONSE_ID
 from danswer.tools.tool import Tool
 from danswer.tools.tool import ToolResponse
 from danswer.tools.tool_runner import (
@@ -238,6 +240,25 @@ class Answer:
 
             if tool.name() == SearchTool.name():
                 self._update_prompt_builder_for_search_tool(prompt_builder, [])
+            if tool.name() == SqlGenerationTool.name():
+                for response in tool_runner.tool_responses():
+                    # sql_generation_response = yield cast(SqlGenerationResponse, response.response)
+                    # from langchain_core.messages import AIMessage
+                    # return AIMessage(content=sql_generation_response.sql)
+                    if response.id == SQL_GENERATION_RESPONSE_ID:
+                        from langchain_core.messages import AIMessage
+                        res1 = yield response.response
+                        #return AIMessage(content=res1, type="ai",msg="test")
+                        return [DanswerAnswerPiece(answer_piece=res1)]
+                        #yield from message_generator_to_string_generator(Iterator[AIMessage(content=res1, type="ai",msg="test")])
+                        #return
+
+                # prompt_builder.update_user_prompt(
+                #     build_sql_generation_user_prompt(
+                #         query=self.question,
+                #     )
+                # )
+
             elif tool.name() == ImageGenerationTool.name():
                 prompt_builder.update_user_prompt(
                     build_image_generation_user_prompt(
@@ -336,6 +357,23 @@ class Answer:
             self._update_prompt_builder_for_search_tool(
                 prompt_builder, final_context_documents
             )
+        elif tool.name() == SqlGenerationTool.name():
+
+            for response in tool_runner.tool_responses():
+                # sql_generation_response = yield cast(SqlGenerationResponse, response.response)
+                # from langchain_core.messages import AIMessage
+                # return AIMessage(content=sql_generation_response.sql)
+                if response.id == SQL_GENERATION_RESPONSE_ID:
+                    from langchain_core.messages import AIMessage
+                    res1 = yield response.response
+                    # return AIMessage(content=res1, type="ai",msg="test")
+                    #yield from message_generator_to_string_generator(Iterator[AIMessage(content=res1, type="ai",msg="test")])
+                    return [DanswerAnswerPiece(answer_piece=res1)]
+            # prompt_builder.update_user_prompt(
+            #     build_sql_generation_user_prompt(
+            #         query=self.question
+            #     )
+            # )
         elif tool.name() == ImageGenerationTool.name():
             img_urls = []
             for response in tool_runner.tool_responses():

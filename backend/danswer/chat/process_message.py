@@ -1,3 +1,4 @@
+import json
 from collections.abc import Callable
 from collections.abc import Iterator
 from functools import partial
@@ -59,6 +60,8 @@ from danswer.tools.search.search_tool import SEARCH_RESPONSE_SUMMARY_ID
 from danswer.tools.search.search_tool import SearchResponseSummary
 from danswer.tools.search.search_tool import SearchTool
 from danswer.tools.search.search_tool import SECTION_RELEVANCE_LIST_ID
+from danswer.tools.textsql.sql_generation_tool import SqlGenerationTool, SQL_GENERATION_RESPONSE_ID, \
+    SqlGenerationResponse
 from danswer.tools.tool import Tool
 from danswer.tools.tool import ToolResponse
 from danswer.tools.utils import compute_all_tool_tokens
@@ -389,6 +392,14 @@ def stream_chat_message_objects(
                     full_doc=new_msg_req.full_doc,
                 )
                 tools.append(search_tool)
+            elif tool_cls.__name__ == SqlGenerationTool.__name__:
+                sql_generation_tool = SqlGenerationTool(
+                    user=user,
+                    persona=persona,
+                    prompt_config=prompt_config,
+                    llm_config=llm.config,
+                )
+                tools.append(sql_generation_tool)
             elif tool_cls.__name__ == ImageGenerationTool.__name__:
                 dalle_key = None
                 if llm and llm.config.api_key and llm.config.model_provider == "openai":
@@ -468,7 +479,12 @@ def stream_chat_message_objects(
                     yield ImageGenerationDisplay(
                         file_ids=[str(file_id) for file_id in file_ids]
                     )
-
+                elif packet.id == SQL_GENERATION_RESPONSE_ID:
+                    sql_generation_response = cast(
+                        list[SqlGenerationResponse], packet.response
+                    )
+                    yield sql_generation_response
+                    # yield cast(ChatPacket, packet)
             else:
                 yield cast(ChatPacket, packet)
 

@@ -74,3 +74,15 @@ prompts:
       directly from the documents.
     datetime_aware: true
     include_citations: true
+
+
+  - name: "SqlPrompt"
+    description: "rewrite the given text as it is"
+    system: >
+      You are a helpful text assistant should write given text as it is.
+
+      IMPORTANT: YOU ONLY PROVIDE THE SAME GIVEN TEXT,NOTHING MORE
+      NEVER USE YOUR OWN KNOWLEDGE.
+    task: ""
+    datetime_aware: true
+    include_citations: true

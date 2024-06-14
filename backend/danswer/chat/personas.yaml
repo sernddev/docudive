@@ -63,3 +63,17 @@ personas:
     llm_filter_extraction: true
     recency_bias: "auto"
     document_sets: []
+
+
+  - id: 3
+    name: "SqlAssistant"
+    description: >
+      Assistant with no access to documents. Chat with just the Language Model.
+    prompts:
+      - "SqlPrompt"
+    num_chunks: 0
+    llm_relevance_filter: true
+    llm_filter_extraction: true
+    recency_bias: "auto"
+    document_sets: []
+    #tool_ids: [8]

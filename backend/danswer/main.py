@@ -76,7 +76,7 @@ from danswer.server.query_and_chat.query_backend import (
 from danswer.server.query_and_chat.query_backend import basic_router as query_router
 from danswer.server.settings.api import admin_router as settings_admin_router
 from danswer.server.settings.api import basic_router as settings_router
-from danswer.tools.built_in_tools import auto_add_search_tool_to_personas
+from danswer.tools.built_in_tools import auto_add_search_tool_to_personas, auto_add_sql_generation_tool_to_personas
 from danswer.tools.built_in_tools import load_builtin_tools
 from danswer.tools.built_in_tools import refresh_built_in_tools_cache
 from danswer.utils.logger import setup_logger
@@ -207,6 +207,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         load_builtin_tools(db_session)
         refresh_built_in_tools_cache(db_session)
         auto_add_search_tool_to_personas(db_session)
+        auto_add_sql_generation_tool_to_personas(db_session)
+
 
         logger.info("Verifying Document Index(s) is/are available.")
         document_index = get_default_document_index(

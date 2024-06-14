@@ -10,6 +10,7 @@ from danswer.db.models import Persona
 from danswer.db.models import Tool as ToolDBModel
 from danswer.tools.images.image_generation_tool import ImageGenerationTool
 from danswer.tools.search.search_tool import SearchTool
+from danswer.tools.textsql.sql_generation_tool import SqlGenerationTool
 from danswer.tools.tool import Tool
 from danswer.utils.logger import setup_logger
 
@@ -35,6 +36,13 @@ BUILT_IN_TOOLS: list[InCodeToolInfo] = [
             "The tool will be used when the user asks the assistant to generate an image."
         ),
         "in_code_tool_id": ImageGenerationTool.__name__,
+    },
+    {
+        "cls": SqlGenerationTool,
+        "description": (
+            "The SQL Generation Tool allows the assistant to use user prompt to generate sql. "
+        ),
+        "in_code_tool_id": SqlGenerationTool.__name__,
     },
 ]
 
@@ -122,6 +130,53 @@ def auto_add_search_tool_to_personas(db_session: Session) -> None:
     # Commit changes to the database
     db_session.commit()
     logger.info("Completed adding SearchTool to relevant Personas.")
+
+
+def auto_add_sql_generation_tool_to_personas(db_session: Session) -> None:
+    """
+    Automatically adds the Sql Generation tool to all Persona objects in the database that have
+    `num_chunks` either unset or set to a value that isn't 0. This is done to migrate
+    Persona objects that were created before the concept of Tools were added.
+    """
+    # Fetch the SearchTool from the database based on in_code_tool_id from BUILT_IN_TOOLS
+    sql_generation_tool_id = next(
+        (
+            tool["in_code_tool_id"]
+            for tool in BUILT_IN_TOOLS
+            if tool["cls"].__name__ == SqlGenerationTool.__name__
+        ),
+        None,
+    )
+    if not sql_generation_tool_id:
+        raise RuntimeError("SqlGenerationTool not found in the BUILT_IN_TOOLS list.")
+
+    sql_generation_tool = db_session.execute(
+        select(ToolDBModel).where(ToolDBModel.in_code_tool_id == sql_generation_tool_id)
+    ).scalar_one_or_none()
+
+    if not sql_generation_tool:
+        raise RuntimeError("SqlGenerationTool not found in the database.")
+
+    # Fetch all Personas that need the tool added
+    personas_to_update = (
+        db_session.execute(
+            select(Persona).where(
+                or_(Persona.id == -3)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    # Add the tool to each relevant Persona
+    for persona in personas_to_update:
+        if sql_generation_tool not in persona.tools:
+            persona.tools.append(sql_generation_tool)
+            logger.info(f"Added SqlGenerationTool to Persona ID: {persona.id}")
+
+    # Commit changes to the database
+    db_session.commit()
+    logger.info("Completed adding SqlGenerationTool to relevant Personas.")
 
 
 _built_in_tools_cache: dict[int, Type[Tool]] | None = None
