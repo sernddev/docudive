@@ -89,6 +89,6 @@ prompts:
       example query: bring all customers who are from country 'USA'
       select * from customers where country='USA'
 
-    task: "answer to use question, reply with valid SQL query"
+    task: "answer to user question, reply with valid SQL query"
     datetime_aware: true
     include_citations: true
