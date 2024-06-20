@@ -394,10 +394,12 @@ def stream_chat_message_objects(
                 tools.append(search_tool)
             elif tool_cls.__name__ == SqlGenerationTool.__name__:
                 sql_generation_tool = SqlGenerationTool(
+                    db_session=db_session,
                     user=user,
                     persona=persona,
                     prompt_config=prompt_config,
                     llm_config=llm.config,
+                    llm = llm
                 )
                 tools.append(sql_generation_tool)
             elif tool_cls.__name__ == ImageGenerationTool.__name__:
@@ -480,11 +482,11 @@ def stream_chat_message_objects(
                         file_ids=[str(file_id) for file_id in file_ids]
                     )
                 elif packet.id == SQL_GENERATION_RESPONSE_ID:
-                    sql_generation_response = cast(
-                        list[SqlGenerationResponse], packet.response
-                    )
-                    yield sql_generation_response
-                    # yield cast(ChatPacket, packet)
+                    # sql_generation_response = cast(
+                    #     list[SqlGenerationResponse], packet.response
+                    # )
+                    # yield sql_generation_response
+                    yield cast(ChatPacket, packet)
             else:
                 yield cast(ChatPacket, packet)
 
