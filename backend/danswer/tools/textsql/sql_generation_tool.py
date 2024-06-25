@@ -216,7 +216,37 @@ class SqlGenerationTool(Tool):
         # Serialize the list of dictionaries to a JSON string
         json_result = json.dumps(result_list, default=json_encoder, ensure_ascii=False, indent=4)
         json_response = f"\n\n```json\n{json_result}\n```\n\n"
+
+        # json_response = "Good morning! It's Tuesday, June 25th, 2024 at 9:28 AM.\n\nI'd be happy to help you convert the JSON data into a human-readable HTML table. Here it is:\n\n**Product Information**\n\n| Product ID | Product Name | Price |\n| --- | --- | --- |\n| 1 | Smartphone | $599.99 |\n| 2 | Laptop | $899.99 |\n| 3 | Tablet | $399.99 |\n| 4 | Smartwatch | $199.99 |\n| 5 | Headphones | $49.99 |\n\nLet me know if you need anything else!"
+        table_response = format_as_markdown_table(result_list)
         yield ToolResponse(
             id=SQL_GENERATION_RESPONSE_ID,
-            response=json_response
+            # response=json_response
+            response=table_response
         )
+
+
+# Function to format the list of dictionaries as a markdown table
+def format_as_markdown_table(data):
+    if not data:
+        return ""
+
+    # Extract headers from the first dictionary
+    headers = data[0].keys()
+    # Create the header row
+    header_row = "| " + " | ".join(headers) + " |"
+    # Create the separator row
+    separator_row = "| " + " | ".join(["---"] * len(headers)) + " |"
+
+    # Create the data rows
+    data_rows = []
+    for row in data:
+        row_values = [row[col].isoformat() if isinstance(row[col], (date, datetime)) else str(row[col]) for col in
+                      headers]
+        data_row = "| " + " | ".join(row_values) + " |"
+        data_rows.append(data_row)
+
+    # Combine header, separator, and data rows into a single string
+    table = "\n".join([header_row, separator_row] + data_rows)
+
+    return table
