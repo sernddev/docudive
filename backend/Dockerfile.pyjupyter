@@ -1,0 +1,37 @@
+# Use an official Python runtime as a parent image
+FROM python:3.11.5
+
+# INSTALL TOOLS
+RUN apt-get update \
+    # gcc required for cx_Oracle
+    #&& apt-get -y install gcc \
+    && apt-get -y install unzip \
+    && apt-get -y install libaio-dev \
+    && mkdir -p /opt/data/lab
+	
+ADD ./oracle-instantclient/ /opt/data
+ADD ./install-instantclient.sh /opt/data 
+ADD ./requirements/pyjupyter.txt /opt/data/requirements.txt	
+	
+# Set the working directory to /app
+WORKDIR /opt/data
+
+# Copy the current directory contents into the container at /app
+#COPY ./lab /opt/data/lab
+
+ENV ORACLE_HOME=/opt/oracle/instantclient
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORACLE_HOME
+
+ENV OCI_HOME=/opt/oracle/instantclient
+ENV OCI_LIB_DIR=/opt/oracle/instantclient
+ENV OCI_INCLUDE_DIR=/opt/oracle/instantclient/sdk/include
+
+# INSTALL INSTANTCLIENT AND DEPENDENCIES
+RUN ./install-instantclient.sh \
+    && pip install -r ./requirements.txt
+
+EXPOSE 8888	48888
+	
+# Run Jupyter Notebook when the container launches
+ENTRYPOINT []
+#CMD [“jupyter”, “notebook”, “ — ip=’0.0.0.0'”, “ — port=8888”, “ — no-browser”, “ — allow-root”]
