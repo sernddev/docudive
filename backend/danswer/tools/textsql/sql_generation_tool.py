@@ -7,12 +7,9 @@ from typing import cast
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-
-from danswer.chat.chat_utils import combine_message_chain
-from danswer.configs.model_configs import GEN_AI_HISTORY_CUTOFF
 from danswer.llm.answering.prompts.build import AnswerPromptBuilder, default_build_system_message, \
     default_build_user_message
-from danswer.llm.utils import message_to_string, message_generator_to_string_generator
+from danswer.llm.utils import message_to_string
 from danswer.prompts.constants import GENERAL_SEP_PAT
 from danswer.tools.tool import Tool
 from danswer.tools.tool import ToolResponse
@@ -72,13 +69,6 @@ RESPONSE:"""
 
 class SqlGenerationResponse(BaseModel):
     db_response: str | None = None
-
-
-class CustomJSONEncoder:
-    def default(self, obj):
-        if isinstance(obj, (date, datetime)):
-            return obj.isoformat()
-        return super().default(obj)
 
 
 class SqlGenerationTool(Tool):
