@@ -247,7 +247,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
 def get_application() -> FastAPI:
     application = FastAPI(
-        title="Danswer Backend", version=__version__, lifespan=lifespan
+        title="DocuDive Backend", version=__version__, lifespan=lifespan
     )
 
     include_router_with_global_prefix_prepended(application, chat_router)
@@ -362,6 +362,6 @@ app = get_application()
 
 if __name__ == "__main__":
     logger.info(
-        f"Starting Danswer Backend version {__version__} on http://{APP_HOST}:{str(APP_PORT)}/"
+        f"Starting DocuDive Backend version {__version__} on http://{APP_HOST}:{str(APP_PORT)}/"
     )
     uvicorn.run(app, host=APP_HOST, port=APP_PORT)

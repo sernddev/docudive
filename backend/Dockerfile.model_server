@@ -35,7 +35,7 @@ COPY ./danswer/utils/logger.py /app/danswer/utils/logger.py
 # Place to fetch version information
 COPY ./danswer/__init__.py /app/danswer/__init__.py
 
-# Shared between Danswer Backend and Model Server
+# Shared between DocuDive Backend and Model Server
 COPY ./shared_configs /app/shared_configs
 
 # Model Server main code
