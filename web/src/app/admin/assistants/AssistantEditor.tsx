@@ -38,6 +38,9 @@ import { ToolSnapshot } from "@/lib/tools/interfaces";
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "SearchTool");
 }
+function findSqlGenerationTool(tools: ToolSnapshot[]) {
+    return tools.find((tool) => tool.in_code_tool_id === "SqlGenerationTool");
+}
 
 function findImageGenerationTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "ImageGenerationTool");
@@ -148,7 +151,7 @@ export function AssistantEditor({
   const imageGenerationTool = providerSupportingImageGenerationExists
     ? findImageGenerationTool(tools)
     : undefined;
-
+  const sqlGenerationTool =  findSqlGenerationTool(tools);
   return (
     <div>
       {popup}
@@ -181,6 +184,9 @@ export function AssistantEditor({
           image_generation_tool_enabled: imageGenerationTool
             ? personaCurrentToolIds.includes(imageGenerationTool.id)
             : false,
+          sql_generation_tool_enabled: sqlGenerationTool
+                ? personaCurrentToolIds.includes(sqlGenerationTool!.id)
+                : false,
         }}
         validationSchema={Yup.object()
           .shape({
@@ -208,6 +214,7 @@ export function AssistantEditor({
             groups: Yup.array().of(Yup.number()),
             search_tool_enabled: Yup.boolean().required(),
             image_generation_tool_enabled: Yup.boolean().required(),
+            sql_generation_tool_enabled: Yup.boolean().required(),
           })
           .test(
             "system-prompt-or-task-prompt",
@@ -255,6 +262,9 @@ export function AssistantEditor({
           const tools = [];
           if (values.search_tool_enabled && ccPairs.length > 0) {
             tools.push(searchTool!.id);
+          }
+          if (values.sql_generation_tool_enabled) {
+            tools.push(sqlGenerationTool!.id);
           }
           if (
             values.image_generation_tool_enabled &&
@@ -564,6 +574,19 @@ export function AssistantEditor({
                         }}
                       />
                     )}
+                    {sqlGenerationTool && (
+                            <BooleanFormField
+                                name="sql_generation_tool_enabled"
+                                label="Sql Generation Tool"
+                                subtext="The Sql Generation Tool allows the assistant to use the given prompt and generate SQL from Database. finally provide output of SQL in table/json format"
+                                onChange={(e) => {
+                                    setFieldValue(
+                                        "sql_generation_tool_enabled",
+                                        e.target.checked
+                                    );
+                                }}
+                            />
+                        )}
                 </>
               </HidableSection>
 
