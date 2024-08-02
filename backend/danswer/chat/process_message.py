@@ -36,6 +36,7 @@ from danswer.db.llm import fetch_existing_llm_providers
 from danswer.db.models import SearchDoc as DbSearchDoc
 from danswer.db.models import ToolCall
 from danswer.db.models import User
+from danswer.db.models import Document
 from danswer.db.persona import get_persona_by_id
 from danswer.document_index.factory import get_default_document_index
 from danswer.file_store.models import ChatFileType
@@ -88,6 +89,7 @@ from danswer.tools.utils import compute_all_tool_tokens
 from danswer.tools.utils import explicit_tool_calling_supported
 from danswer.utils.logger import setup_logger
 from danswer.utils.timing import log_generator_function_time
+
 
 from danswer.tools.summary.summary_tool import SummaryGenerationTool, SUMMARY_GENERATION_RESPONSE_ID
 from danswer.tools.text_to_sql.sql_generation_tool import SqlGenerationTool, SQL_GENERATION_RESPONSE_ID
@@ -265,6 +267,13 @@ def stream_chat_message_objects(
             db_session=db_session,
         )
 
+        document_ingest_while_upload = True
+
+        if document_ingest_while_upload:
+            current_search_doc_id: str = new_msg_req.file_descriptors[0]['id']
+            new_msg_req.file_descriptors = []
+            new_msg_req.retrieval_options = None
+
         message_text = new_msg_req.message
         chat_session_id = new_msg_req.chat_session_id
         parent_id = new_msg_req.parent_message_id
@@ -284,10 +293,11 @@ def stream_chat_message_objects(
         if prompt_id is None and persona.prompts:
             prompt_id = sorted(persona.prompts, key=lambda x: x.id)[-1].id
 
-        if reference_doc_ids is None and retrieval_options is None:
-            raise RuntimeError(
-                "Must specify a set of documents for chat or specify search options"
-            )
+        if not document_ingest_while_upload:
+            if reference_doc_ids is None and retrieval_options is None:
+                raise RuntimeError(
+                    "Must specify a set of documents for chat or specify search options"
+                )
 
         try:
             llm, fast_llm = get_llms_for_persona(
@@ -384,14 +394,25 @@ def stream_chat_message_objects(
 
         selected_db_search_docs = None
         selected_llm_docs: list[LlmDoc] | None = None
-        if reference_doc_ids:
-            identifier_tuples = get_doc_query_identifiers_from_model(
-                search_doc_ids=reference_doc_ids,
-                chat_session=chat_session,
-                user_id=user_id,
-                db_session=db_session,
-            )
 
+        if document_ingest_while_upload or reference_doc_ids:
+            if document_ingest_while_upload:
+                identifier_tuples = [(current_search_doc_id, 0)]
+
+                # In case the search doc is deleted, just don't include it
+                # though this should never happen
+                db_search_docs_or_none = []
+
+                selected_db_search_docs = [
+                    db_sd for db_sd in db_search_docs_or_none if db_sd
+                ]
+            elif reference_doc_ids:
+                identifier_tuples = get_doc_query_identifiers_from_model(
+                    search_doc_ids=reference_doc_ids,
+                    chat_session=chat_session,
+                    user_id=user_id,
+                    db_session=db_session,
+                )
             # Generates full documents currently
             # May extend to include chunk ranges
             selected_llm_docs = inference_documents_from_ids(
@@ -401,17 +422,6 @@ def stream_chat_message_objects(
             document_pruning_config = DocumentPruningConfig(
                 is_manually_selected_docs=True
             )
-
-            # In case the search doc is deleted, just don't include it
-            # though this should never happen
-            db_search_docs_or_none = [
-                get_db_search_doc_by_id(doc_id=doc_id, db_session=db_session)
-                for doc_id in reference_doc_ids
-            ]
-
-            selected_db_search_docs = [
-                db_sd for db_sd in db_search_docs_or_none if db_sd
-            ]
 
         else:
             document_pruning_config = DocumentPruningConfig(
