@@ -198,6 +198,7 @@ class SqlGenerationTool(Tool):
                 sql_generation_tool_output = self.generate_sql_for_dataframe.generate_sql_query(schema=dataframe.dtypes,
                                                                                                 requirement=query)
                 filtered_df = self.execute_sql_on_dataframe(df=dataframe, sql_query=sql_generation_tool_output)
+                result_list = filtered_df.to_dict('records')
             else:
                 filtered_df = None
                 sql_generation_tool_output = None
