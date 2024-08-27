@@ -1,0 +1,71 @@
+EMP_NO,int64
+BIRTH_DATE,object
+FIRST_NAME,object
+LAST_NAME,object
+GENDER,object
+HIRE_DATE,object
+DEPT_NO,object
+
+user requirement: chart count employees by department
+
+
+System Prompt
+Task: Generate an SQL query based on the provided DataFrame schema and user requirement.     
+
+			
+Task Prompt
+Guidelines:
+                            - Use standard SQL syntax.
+                            - Ensure the query accurately meets the user's specified requirement.
+                            - Always use the table name as df in your query.     							
+							- Use alias for column names in case of aggregate or other operations like count, max, sum etc.
+							- Ensure that columns names/alias names in SQL query is same as dataframe schema coulumn names.
+                            - Do not include any explanations or additional text.
+                            - Output just SQL Query.
+							
+							
+################################################
+################################################
+
+System Prompt
+	Task: Generate an SQL query based on the provided DataFrame schema and user requirement.     
+
+Task Prompt
+
+	Guidelines:
+								- Use standard SQL syntax.
+								- Ensure the query accurately meets the user's specified requirement.
+								- Always use the table name df in your query.                                                                
+								- Do not include any explanations or additional text.
+								- Output just SQL Query.
+								
+								
+#########################################							
+#########################################
+
+Task: Generate an SQL query based on the provided DataFrame schema and user requirement.  
+
+Guidelines:
+								- Use standard SQL syntax.
+								- Ensure the query accurately meets the user's specified requirement.
+                                - Ensure that columns names/alias names in SQL query is same as dataframe schema column names.
+								- Always use the table name df in your query.                                                                
+								- Do not include any explanations or additional text.
+								- Output just SQL Query.
+
+
+"Generate a correct and error-free SQL Query based on the provided DataFrame schema "
+            "and user requirements, avoiding the errors encountered in previous executions."
+			
+# Load excel into dataframe
+            # get schema of dataframe
+            # ask llm to generate sql query based on dataframe column names and user requirement
+            # execute sql query on dataframe either using in-memory database or pandasql
+            # find chart type based on number of columns in sql query
+            # ask llm to resolve chart parameters based on sql_query, user_requirements, dataframe schema.
+            # plot desired chart using resolved parameters, dataframe and plotly
+			
+
+Limit rows returned from SQL In Memory DB.
+White space in name issue ?
+LLM predicting wrong column name.
