@@ -30,6 +30,7 @@ export function EmailPasswordForm({
         initialValues={{
           email: "",
           password: "",
+          name: ""
         }}
         validationSchema={Yup.object().shape({
           email: Yup.string().email().required(),
@@ -63,6 +64,20 @@ export function EmailPasswordForm({
               await requestEmailVerification(values.email);
               router.push("/auth/waiting-on-verification");
             } else {
+              
+              if (isSignup)
+              {
+                  const response = await fetch("/api/settings/user_info/", {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    key: values.email,
+                    value: values.name,
+                    }),
+                  });
+                }
               router.push("/");
             }
           } else {
@@ -94,6 +109,12 @@ export function EmailPasswordForm({
               label="Password"
               type="password"
               placeholder="**************"
+            />
+
+            <TextFormField
+              name="name"
+              label="Name"             
+              display={isSignup}
             />
 
             <div className="flex">

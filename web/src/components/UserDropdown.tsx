@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useContext } from "react";
+import { useState, useEffect, useRef, useContext} from "react";
 import { FiSearch, FiMessageSquare, FiTool, FiLogOut } from "react-icons/fi";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -21,6 +21,8 @@ export function UserDropdown({
   hideChatAndSearch?: boolean;
 }) {
   const [userInfoVisible, setUserInfoVisible] = useState(false);
+  const [userName, setUserName] = useState("");
+
   const userInfoRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -38,10 +40,32 @@ export function UserDropdown({
       router.push("/auth/login");
     });
   };
-
   const showAdminPanel = !user || user.role === "admin";
   const showLogout =
     user && !checkUserIsNoAuthUser(user.id) && !LOGOUT_DISABLED;
+
+  useEffect(() => {
+    const fetchData = ( async () => {
+      try {
+        const response = await fetch("/api/settings/user_info/" + user?.email, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          }
+        });
+        const data = await response.json();
+        if(data.value) {
+          setUserName(()=> {
+            return data.value
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user Name:', error);
+      }
+    });
+
+    fetchData();
+  }, []);
 
   return (
     <div className="relative" ref={userInfoRef}>
@@ -55,7 +79,7 @@ export function UserDropdown({
               className="flex cursor-pointer"
             >
               <div className="my-auto bg-user hover:bg-user-hover rounded-lg px-2 text-base font-normal">
-                {user && user.email ? user.email : "A"}
+                {userName ? userName : user?.email}
               </div>
             </div>
           </BasicSelectable>
@@ -148,3 +172,4 @@ export function UserDropdown({
     </div>
   );
 }
+

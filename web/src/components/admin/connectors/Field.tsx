@@ -114,6 +114,7 @@ export function TextFormField({
   explanationText,
   explanationLink,
   small,
+  display = true
 }: {
   name: string;
   label: string;
@@ -133,6 +134,7 @@ export function TextFormField({
   explanationText?: string;
   explanationLink?: string;
   small?: boolean;
+  display?: boolean
 }) {
   let heightString = defaultHeight || "";
   if (isTextArea && !heightString) {
@@ -140,6 +142,7 @@ export function TextFormField({
   }
 
   return (
+    display && 
     <div className="mb-6">
       <div className="flex gap-x-2 items-center">
         <Label small={small}>{label}</Label>
