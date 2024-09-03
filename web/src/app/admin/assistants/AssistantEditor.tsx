@@ -64,6 +64,9 @@ function findInternetSearchTool(tools: ToolSnapshot[]) {
 function findComposeEmailTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "ComposeEmailTool");
 }
+function findExcelAnalyzerTool(tools: ToolSnapshot[]) {
+    return tools.find((tool) => tool.in_code_tool_id === "ExcelAnalyzerTool");
+}
 
 function SubLabel({ children }: { children: string | JSX.Element }) {
   return <div className="text-sm text-subtle mb-2">{children}</div>;
@@ -166,6 +169,7 @@ export function AssistantEditor({
   const summaryGenerationTool =  findSummaryGenerationTool(tools);
   const internetSearchTool = findInternetSearchTool(tools);
   const composeEmailTool =  findComposeEmailTool(tools);
+  const excelAnalyzerTool =  findExcelAnalyzerTool(tools);
 
   const customTools = tools.filter(
     (tool) =>
@@ -174,7 +178,8 @@ export function AssistantEditor({
       tool.in_code_tool_id !== internetSearchTool?.in_code_tool_id &&
       tool.in_code_tool_id !== sqlGenerationTool?.in_code_tool_id &&
       tool.in_code_tool_id !== summaryGenerationTool?.in_code_tool_id &&
-      tool.in_code_tool_id !== composeEmailTool?.in_code_tool_id
+      tool.in_code_tool_id !== composeEmailTool?.in_code_tool_id &&
+      tool.in_code_tool_id !== excelAnalyzerTool?.in_code_tool_id
   );
 
   const availableTools = [
@@ -185,6 +190,7 @@ export function AssistantEditor({
     ...(sqlGenerationTool ? [sqlGenerationTool] : []),
     ...(summaryGenerationTool ? [summaryGenerationTool] : []),
     ...(composeEmailTool ? [composeEmailTool] : []),
+    ...(excelAnalyzerTool ? [excelAnalyzerTool] : []),
   ];
   const enabledToolsMap: { [key: number]: boolean } = {};
   availableTools.forEach((tool) => {
@@ -313,6 +319,9 @@ export function AssistantEditor({
           const composeEmailToolEnabled = composeEmailTool
                 ? enabledTools.includes(composeEmailTool.id)
                 : false;
+          const excelAnalyzerToolEnabled = excelAnalyzerTool
+                ? enabledTools.includes(excelAnalyzerTool.id)
+                : false;
           if (imageGenerationToolEnabled) {
             if (
               !checkLLMSupportsImageInput(
@@ -429,19 +438,19 @@ export function AssistantEditor({
               <div className="pb-6">
                 <TextFormField
                   name="name"
-                  tooltip="Used to identify the Assistant in the UI."
+                  tooltip="Used to identify the Plugin in the UI."
                   label="Name"
                   disabled={isUpdate}
-                  placeholder="e.g. 'Email Assistant'"
+                  placeholder="e.g. 'Email Plugin'"
                 />
                 <TextFormField
-                  tooltip="Used for identifying assistants and their use cases."
+                  tooltip="Used for identifying plugins and their use cases."
                   name="description"
                   label="Description"
-                  placeholder="e.g. 'Use this Assistant to help draft professional emails'"
+                  placeholder="e.g. 'Use this Plugin to help draft professional emails'"
                 />
                 <TextFormField
-                  tooltip="Gives your assistant a prime directive"
+                  tooltip="Gives your plugin a prime directive"
                   name="system_prompt"
                   label="System Prompt"
                   isTextArea={true}
@@ -471,7 +480,7 @@ export function AssistantEditor({
                         <TooltipContent side="top" align="center">
                           <p className="bg-neutral-900 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
                             Select a Large Language Model (Generative AI model)
-                            to power this Assistant
+                            to power this Plugin
                           </p>
                         </TooltipContent>
                       </Tooltip>
@@ -528,7 +537,7 @@ export function AssistantEditor({
                         </TooltipTrigger>
                         <TooltipContent side="top" align="center">
                           <p className="bg-neutral-900 max-w-[200px] mb-1 text-sm rounded-lg p-1.5 text-white">
-                            You can give your assistant advanced capabilities
+                            You can give your plugin advanced capabilities
                             like image generation
                           </p>
                         </TooltipContent>
@@ -593,6 +602,17 @@ export function AssistantEditor({
                               }}
                           />
                       )}
+                      {excelAnalyzerTool && (
+                          <BooleanFormField
+                              noPadding
+                              name={`enabled_tools_map.${excelAnalyzerTool.id}`}
+                              label={excelAnalyzerTool.display_name}
+                              subtext={excelAnalyzerTool.description}
+                              onChange={() => {
+                                  toggleToolInValues(excelAnalyzerTool.id);
+                              }}
+                          />
+                      )}
                     {ccPairs.length > 0 && searchTool && (
                       <>
                         <BooleanFormField
@@ -626,9 +646,9 @@ export function AssistantEditor({
                                         ) : (
                                           "Document Sets"
                                         )}{" "}
-                                        that this Assistant should search
+                                        that this Plugin should search
                                         through. If none are specified, the
-                                        Assistant will search through all
+                                        Plugin will search through all
                                         available documents in order to try and
                                         respond to queries.
                                       </>
@@ -719,7 +739,7 @@ export function AssistantEditor({
                                       subtext={`
                                       If set, the response will include bracket citations ([1], [2], etc.) 
                                       for each document used by the LLM to help inform the response. This is 
-                                      the same technique used by the default Assistants. In general, we recommend 
+                                      the same technique used by the default Plugins. In general, we recommend 
                                       to leave this enabled in order to increase trust in the LLM answer.`}
                                     />
                                   </div>
@@ -941,7 +961,7 @@ export function AssistantEditor({
                           alignTop
                           name="is_public"
                           label="Is Public?"
-                          subtext="If set, this Assistant will be available to all users. If not, only the specified User Groups will be able to access it."
+                          subtext="If set, this Plugin will be available to all users. If not, only the specified User Groups will be able to access it."
                         />
 
                         {userGroups &&
@@ -950,7 +970,7 @@ export function AssistantEditor({
                             <div>
                               <Text>
                                 Select which User Groups should have access to
-                                this Assistant.
+                                this Plugin.
                               </Text>
                               <div className="flex flex-wrap gap-2 mt-2">
                                 {userGroups.map((userGroup) => {

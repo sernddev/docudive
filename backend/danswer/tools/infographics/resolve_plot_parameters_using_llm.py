@@ -61,11 +61,11 @@ class ResolvePlotParametersUsingLLM:
         return prompt
 
     def resolve_graph_parameters_from_chart_type_and_sql_and_requirements(self, sql_query, schema, requirement,
-                                                                          chart_type) -> list:
+                                                                          chart_type, metadata) -> list:
         """ Resolve graph parameters by querying the LLM with constructed prompts. """
         prompt = self.construct_prompt(sql_query, schema, requirement, chart_type)
         try:
-            llm_response = self.llm.invoke(prompt=prompt)
+            llm_response = self.llm.invoke(prompt=prompt, metadata=metadata)
             field_names = llm_response.content
             field_names = json.loads(field_names)
             print(f"field_names : {field_names}, type(field_names) = {type(field_names)}")
@@ -74,18 +74,6 @@ class ResolvePlotParametersUsingLLM:
         except Exception as e:
             logger.error("Failed to resolve graph parameters: %s", str(e))
             return []
-
-    def post_process(self, text):
-        return "".join([json.loads(token)['response'] for token in text['text'].strip().split('\n')])
-
-    def get_database_schema(self) -> str:
-        """ Return the database schema. """
-        return """
-            Album(AlbumId primary key, Title, ArtistId),
-            Artist(ArtistId primary key,Name),
-            Customer(CustomerId primary key,FirstName,LastName,Company,Address,City,State,Country),
-            Employee(EmployeeId primary key,FirstName,LastName,Title,ReportsTo, BirthDate,Address,City,State,Country,Phone,Email)
-        """
 
 
 if __name__ == '__main__':

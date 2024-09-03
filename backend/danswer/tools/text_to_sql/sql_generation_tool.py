@@ -1,4 +1,5 @@
 import json
+import traceback
 from collections.abc import Generator
 from datetime import date, datetime
 from io import BytesIO
@@ -15,7 +16,7 @@ from danswer.llm.answering.prompts.build import AnswerPromptBuilder, default_bui
     default_build_user_message
 from danswer.llm.utils import message_to_string
 from danswer.prompts.constants import GENERAL_SEP_PAT
-from danswer.tools.infographics.dataframe_inmemory_sql import DataframeInMemorySQL
+from danswer.tools.infographics.dataframe_inmemory_sql import DataframeInMemorySQL, DataframeInMemorySQLExecutionException
 from danswer.tools.infographics.generate_sql_for_dataframe import GenerateSqlForDataframe
 from danswer.tools.infographics.plot_charts import PlotCharts
 from danswer.tools.infographics.resolve_plot_parameters_using_llm import ResolvePlotParametersUsingLLM
@@ -101,7 +102,8 @@ class SqlGenerationTool(Tool):
             prompt_config: PromptConfig,
             llm_config: LLMConfig,
             llm: LLM | None,
-            files: list[InMemoryChatFile] | None
+            files: list[InMemoryChatFile] | None,
+            metadata : dict | None
 
     ) -> None:
         self.db_session = db_session
@@ -111,6 +113,7 @@ class SqlGenerationTool(Tool):
         self.llm_config = llm_config
         self.llm = llm
         self.files = files
+        self.metadata = metadata
         self.plot_charts = PlotCharts()
         self.resolve_plot_parameters = ResolvePlotParametersUsingLLM(llm=llm,
                                                                      llm_config=llm_config,
@@ -183,73 +186,108 @@ class SqlGenerationTool(Tool):
     def run(self, **kwargs: str) -> Generator[ToolResponse, None, None]:
         # query= " list all employes by there age  output = is sql
         # infographi_query = show emplyes age chart by salary
-        query = cast(str, kwargs["query"])
+        try:
+            query = cast(str, kwargs["query"])
 
-        llm_config = self.llm_config
-        history = []
-        dataframe = None
-        result_list = []
-        if self.files:
-            dataframe = self.generate_dataframe_from_excel(self.files)
-            if not dataframe.empty:
-                sql_generation_tool_output = self.generate_sql_for_dataframe.generate_sql_query(schema=dataframe.dtypes,
-                                                                                                requirement=query)
-            else:
-                sql_generation_tool_output = None
-        else:
-            '''
-            if it is sql db
-            '''
-            prompt_builder = AnswerPromptBuilder(history, llm_config)
-            prompt_builder.update_system_prompt(
-                default_build_system_message(self.prompt_config)
-            )
-            prompt_builder.update_user_prompt(
-                default_build_user_message(
-                    user_query=query, prompt_config=self.prompt_config, files=[]
-                )
-            )
-            prompt = prompt_builder.build()
-
-            sql_generation_tool_output = message_to_string(
-                self.llm.invoke(prompt=prompt)
-            )
-            # run the SQL in DB
-            db_results = self.db_session.execute(text(sql_generation_tool_output))
-            # dbrows = db_results.fetchall()
-            dbrows = db_results.fetchmany(size=10)
-
-            # Convert rows to a list of dictionaries
-            # Each row will be converted to a dictionary using column names
-            result_list = [dict(row._mapping) for row in dbrows]
-
-
-        isTableResponse = "json" in query
-        isChartInQuery = "chart" in query.lower()
-        # isChartInQuery = True
-        if not result_list and dataframe.empty:
-            final_response = "No result found. Please rephrase your query!"
-        else:
-            if isTableResponse:
-                # Define the custom JSON encoder using a lambda function
-                json_encoder = lambda obj: obj.isoformat() if isinstance(obj, (date, datetime)) else TypeError(
-                    f"Object of type {type(obj).__name__} is not JSON serializable")
-                # Serialize the list of dictionaries to a JSON string
-                json_result = json.dumps(result_list, default=json_encoder, ensure_ascii=False, indent=4)
-                json_response = f"\n\n```json\n{json_result}\n```\n\n"
-                final_response = json_response
-            elif isChartInQuery:
-                if not dataframe.empty and sql_generation_tool_output:
-                    image_path = self.execute_sql_on_dataframe_and_resolve_parameters_and_generate_chart(df=dataframe,
-                                                                                                         sql_query=sql_generation_tool_output,
-                                                                                                         user_query=query)
-                    final_response = image_path
+            llm_config = self.llm_config
+            # history = self.history
+            history = []
+            filtered_df = None
+            dataframe_summary = None
+            dataframe = None
+            result_list = []
+            if self.files:
+                dataframe = self.generate_dataframe_from_excel(self.files[0]) # first file only
+                if not dataframe.empty:
+                    sql_generation_tool_output = self.generate_sql_for_dataframe.generate_sql_query(schema=dataframe.dtypes,
+                                                                                                    requirement=query, metadata = self.metadata)
+                    filtered_df = self.execute_sql_on_dataframe(df=dataframe, sql_query=sql_generation_tool_output)
                 else:
-                    final_response = "No records fetched from uploaded Excel. Please check your Excel or rephrase your query!"
+                    filtered_df = None
+                    sql_generation_tool_output = None
             else:
-                table_response = self.format_as_markdown_table(result_list)
-                tabular_data_summarization = self.tabular_data_summarizer(query, result_list)
-                final_response = tabular_data_summarization + "\n" + table_response
+                '''
+                if it is sql db
+                '''
+                prompt_builder = AnswerPromptBuilder(history, llm_config)
+                prompt_builder.update_system_prompt(
+                    default_build_system_message(self.prompt_config)
+                )
+                prompt_builder.update_user_prompt(
+                    default_build_user_message(
+                        user_query=query, prompt_config=self.prompt_config, files=[]
+                    )
+                )
+                prompt = prompt_builder.build()
+
+                sql_generation_tool_output = message_to_string(
+                    self.llm.invoke(prompt=prompt, metadata=self.metadata)
+                )
+                # run the SQL in DB
+                db_results = self.db_session.execute(text(sql_generation_tool_output))
+                # dbrows = db_results.fetchall()
+                dbrows = db_results.fetchmany(size=10)
+
+                # Convert rows to a list of dictionaries
+                # Each row will be converted to a dictionary using column names
+                result_list = [dict(row._mapping) for row in dbrows]
+
+
+            isTableResponse = "json" in query
+            isChartInQuery = "chart" in query.lower()
+            # isChartInQuery = True
+            if not result_list and filtered_df is None :
+                final_response = "No result found. Please rephrase your query!"
+            else:
+                if isTableResponse:
+                    # Define the custom JSON encoder using a lambda function
+                    json_encoder = lambda obj: obj.isoformat() if isinstance(obj, (date, datetime)) else TypeError(
+                        f"Object of type {type(obj).__name__} is not JSON serializable")
+                    # Serialize the list of dictionaries to a JSON string
+                    json_result = json.dumps(result_list, default=json_encoder, ensure_ascii=False, indent=4)
+                    json_response = f"\n\n```json\n{json_result}\n```\n\n"
+                    final_response = json_response
+                elif isChartInQuery:
+                    if not filtered_df.empty and sql_generation_tool_output:
+                        previous_generated_sqls = []
+                        previous_response_errors = []
+                        allowed_attempt = 3
+                        current_attempt = 1
+                        while current_attempt <= allowed_attempt:
+                            try:
+                                logger.info(f"Attempt #{current_attempt}. execute_sql_on_dataframe_and_resolve_parameters_and_generate_chart")
+                                image_path = self.resolve_parameters_and_generate_chart(filtered_df=filtered_df,
+                                                                                        sql_query=sql_generation_tool_output,
+                                                                                        user_query=query)
+                                list_records = filtered_df.to_dict('records')
+                                tabular_data_summarization = self.tabular_data_summarizer(query, list_records)
+                                final_response = tabular_data_summarization + "\n" + image_path
+                                break
+                            except DataframeInMemorySQLExecutionException as e:
+                                previous_response = str(e.base_exception.args[0])
+                                previous_generated_sqls.append(sql_generation_tool_output)
+                                previous_response_errors.append(previous_response)
+                                current_attempt += 1
+                                final_response = 'Exception while executing SQL on data or generating graph.'
+                                if current_attempt <= allowed_attempt:
+                                    sql_generation_tool_output = self.generate_sql_for_dataframe.generate_sql_query(schema=dataframe.dtypes,
+                                                                                                                    requirement=query,
+                                                                                                                    previous_sql_queries=previous_generated_sqls,
+                                                                                                                    previous_response_errors=previous_response_errors,
+                                                                                                                    metadata=self.metadata)
+                    else:
+                        final_response = "No records fetched from uploaded Excel. Please check your Excel or rephrase your query!"
+                else:
+                    table_response = self.format_as_markdown_table(result_list)
+                    tabular_data_summarization = self.tabular_data_summarizer(query, result_list)
+                    final_response = tabular_data_summarization + "\n\n" + table_response
+        except Exception as e:
+            error_message = f"Error occurred: {str(e)}"
+            stack_trace = traceback.format_exc()
+            logger.error(error_message +"\n\n" +stack_trace)
+            # final_response not supposed to set error, this is just for debug to know error
+            #it should be disabled in release/prod env
+            final_response = error_message +"\n\n" +stack_trace
 
         yield ToolResponse(
             id=SQL_GENERATION_RESPONSE_ID,
@@ -262,34 +300,44 @@ class SqlGenerationTool(Tool):
         #SUMMARIZATION_PROMPT_FOR_TABULAR_DATA.format(user_query, formatted_table)
         logger.info(SUMMARIZATION_PROMPT_FOR_TABULAR_DATA)
 
-        llm_response = self.llm.invoke(prompt=SUMMARIZATION_PROMPT_FOR_TABULAR_DATA.format(user_query, tabular_data))
+        llm_response = self.llm.invoke(prompt=SUMMARIZATION_PROMPT_FOR_TABULAR_DATA.format(user_query, tabular_data), metadata=self.metadata)
         sql_query = llm_response.content
 
         return sql_query
 
-    def generate_dataframe_from_excel(self, files):
-        file = files[0]  # first file only
+    def generate_dataframe_from_excel(self, file):
+        # file = files[0]  # first file only
         content = file.content
         excel_byte_stream = BytesIO(content)
         dataframe = pd.read_csv(excel_byte_stream)
         logger.info(f'excel loaded to dataframe : {dataframe.dtypes}')
         return dataframe
 
-    def execute_sql_on_dataframe_and_resolve_parameters_and_generate_chart(self, df, sql_query, user_query) -> str:
+    def resolve_parameters_and_generate_chart(self, filtered_df, sql_query, user_query) -> str:
+        if not filtered_df.empty:
+            chart_type = self.plot_charts.find_chart_type(filtered_df)
+            column_names = self.resolve_plot_parameters.resolve_graph_parameters_from_chart_type_and_sql_and_requirements(sql_query=sql_query,
+                                                                                                                          schema=filtered_df.info,
+                                                                                                                          requirement=user_query,
+                                                                                                                          chart_type=chart_type, metadata= self.metadata)
+            image_path = self.plot_charts.generate_chart_and_save(dataframe=filtered_df,
+                                                                  field_names=column_names,
+                                                                  chart_type=chart_type)
+            return image_path
+
+    def execute_sql_on_dataframe(self, df, sql_query):
         # execute query on dataframe
         self.dataframe_inmemory_sql = DataframeInMemorySQL(df=df)
-        filtered_df = self.dataframe_inmemory_sql.execute_sql(sql_query)
-        logger.debug(f'dataframe_in_memory_sql df: {filtered_df}')
-        chart_type = self.plot_charts.find_chart_type(filtered_df)
-        column_names = self.resolve_plot_parameters.resolve_graph_parameters_from_chart_type_and_sql_and_requirements(
-            sql_query=sql_query,
-            schema=filtered_df.info,
-            requirement=user_query,
-            chart_type=chart_type)
-        image_path = self.plot_charts.generate_chart_and_save(dataframe=filtered_df,
-                                                              field_names=column_names,
-                                                              chart_type=chart_type)
-        return image_path
+        # repeat 3 times only
+        try:
+            filtered_df = self.dataframe_inmemory_sql.execute_sql(sql_query)
+            logger.debug(f'dataframe_in_memory_sql df: {filtered_df}')
+        except DataframeInMemorySQLExecutionException as e:
+            # if sql execution error then ask lama again to generate sql query and consider the previous response as error and correct the response.
+            # asking llama to correct the error
+            logger.debug(f'dataframe_in_memory_sql exception: {e}')
+            raise e
+        return filtered_df
 
     # Function to format the list of dictionaries as a markdown table
     def format_as_markdown_table(self, data):
@@ -324,3 +372,6 @@ class SqlGenerationTool(Tool):
         # subfields that are not serializable by default (datetime)
         # this forces pydantic to make them JSON serializable for us
         return sql_generation_response
+
+    def generate_dataframe_summary(self, filtered_df):
+        pass
