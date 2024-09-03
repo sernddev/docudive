@@ -27,23 +27,7 @@ export function UserDropdown({
   const router = useRouter();
 
   const combinedSettings = useContext(SettingsContext);
-  if (!combinedSettings) {
-    return null;
-  }
-  const settings = combinedSettings.settings;
-
-  const handleLogout = () => {
-    logout().then((isSuccess) => {
-      if (!isSuccess) {
-        alert("Failed to logout");
-      }
-      router.push("/auth/login");
-    });
-  };
-  const showAdminPanel = !user || user.role === "admin";
-  const showLogout =
-    user && !checkUserIsNoAuthUser(user.id) && !LOGOUT_DISABLED;
-
+  
   useEffect(() => {
     const fetchData = ( async () => {
       try {
@@ -66,6 +50,24 @@ export function UserDropdown({
 
     fetchData();
   }, []);
+ 
+  if (!combinedSettings) {
+    return null;
+  }
+
+  const settings = combinedSettings.settings;
+
+  const handleLogout = () => {
+    logout().then((isSuccess) => {
+      if (!isSuccess) {
+        alert("Failed to logout");
+      }
+      router.push("/auth/login");
+    });
+  };
+  const showAdminPanel = !user || user.role === "admin";
+  const showLogout =
+    user && !checkUserIsNoAuthUser(user.id) && !LOGOUT_DISABLED;
 
   return (
     <div className="relative" ref={userInfoRef}>
