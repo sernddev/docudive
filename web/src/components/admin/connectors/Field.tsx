@@ -113,8 +113,7 @@ export function TextFormField({
   tooltip,
   explanationText,
   explanationLink,
-  small,
-  display = true
+  small
 }: {
   name: string;
   label: string;
@@ -134,7 +133,6 @@ export function TextFormField({
   explanationText?: string;
   explanationLink?: string;
   small?: boolean;
-  display?: boolean
 }) {
   let heightString = defaultHeight || "";
   if (isTextArea && !heightString) {
@@ -142,55 +140,54 @@ export function TextFormField({
   }
 
   return (
-    display && 
-    <div className="mb-6">
-      <div className="flex gap-x-2 items-center">
-        <Label small={small}>{label}</Label>
+      <div className="mb-6">
+        <div className="flex gap-x-2 items-center">
+          <Label small={small}>{label}</Label>
 
-        {tooltip && <ToolTipDetails>{tooltip}</ToolTipDetails>}
+          {tooltip && <ToolTipDetails>{tooltip}</ToolTipDetails>}
 
-        {error ? (
-          <ManualErrorMessage>{error}</ManualErrorMessage>
-        ) : (
-          !hideError && (
-            <ErrorMessage
-              name={name}
-              component="div"
-              className="text-error my-auto text-sm"
-            />
-          )
+          {error ? (
+            <ManualErrorMessage>{error}</ManualErrorMessage>
+          ) : (
+            !hideError && (
+              <ErrorMessage
+                name={name}
+                component="div"
+                className="text-error my-auto text-sm"
+              />
+            )
+          )}
+        </div>
+
+        {subtext && <SubLabel>{subtext}</SubLabel>}
+        <Field
+          as={isTextArea ? "textarea" : "input"}
+          type={type}
+          name={name}
+          id={name}
+          className={`
+            ${small && "text-sm"}
+            border 
+            border-border 
+            rounded 
+            w-full 
+            py-2 
+            px-3 
+            mt-1
+            ${heightString}
+            ${fontSize}
+            ${disabled ? " bg-background-strong" : " bg-background-emphasis"}
+            ${isCode ? " font-mono" : ""}
+          `}
+          disabled={disabled}
+          placeholder={placeholder}
+          autoComplete={autoCompleteDisabled ? "off" : undefined}
+          {...(onChange ? { onChange } : {})}
+        />
+        {explanationText && (
+          <ExplanationText link={explanationLink} text={explanationText} />
         )}
       </div>
-
-      {subtext && <SubLabel>{subtext}</SubLabel>}
-      <Field
-        as={isTextArea ? "textarea" : "input"}
-        type={type}
-        name={name}
-        id={name}
-        className={`
-          ${small && "text-sm"}
-          border 
-          border-border 
-          rounded 
-          w-full 
-          py-2 
-          px-3 
-          mt-1
-          ${heightString}
-          ${fontSize}
-          ${disabled ? " bg-background-strong" : " bg-background-emphasis"}
-          ${isCode ? " font-mono" : ""}
-        `}
-        disabled={disabled}
-        placeholder={placeholder}
-        autoComplete={autoCompleteDisabled ? "off" : undefined}
-        {...(onChange ? { onChange } : {})}
-      />
-      {explanationText && (
-        <ExplanationText link={explanationLink} text={explanationText} />
-      )}
-    </div>
   );
 }
 

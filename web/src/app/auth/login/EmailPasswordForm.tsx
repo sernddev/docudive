@@ -96,27 +96,26 @@ export function EmailPasswordForm({
         }}
       >
         {({ isSubmitting, values }) => (
-          <Form>
+          <Form>            
+            {
+              isSignup? <TextFormField
+                name="name"
+                label="Name"    
+                placeholder="Your Name"
+              />: ''
+            }
             <TextFormField
               name="email"
               label="Email"
               type="email"
               placeholder="email@yourcompany.com"
             />
-
             <TextFormField
               name="password"
               label="Password"
               type="password"
               placeholder="**************"
             />
-
-            <TextFormField
-              name="name"
-              label="Name"             
-              display={isSignup}
-            />
-
             <div className="flex">
               <Button
                 type="submit"
