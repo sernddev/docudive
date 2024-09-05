@@ -44,16 +44,16 @@ def fetch_settings(_: User | None = Depends(current_user)) -> Settings:
 @basic_router.put("/user_info")
 def upsert_user_info(user_info: KeyValueStoreGeneric, _: User | None = Depends(current_user)) -> None:
     key = f"{USER_INFO_KEY}{user_info.key}"
-    logger.error(f"Before inserting Key_Value_Store with key : {key}")
+    logger.info(f"Before inserting Key_Value_Store with key : {key}")
     kvstore = KeyValueStoreGeneric(key=key, value=user_info.value)
     store_key_value(kvstore)
-    logger.error(f"Key_Value_Store is updated with key : {key} and the value is {user_info.value}")
+    logger.info(f"Key_Value_Store is updated with key : {key} and the value is {user_info.value}")
 
 
 @basic_router.get('/user_info/{key}')
 def get_user_info(key: str,  _: User | None = Depends(current_user)) -> KeyValueStoreGeneric:
     key = f"{USER_INFO_KEY}{key}"
-    logger.error(f"Getting USER_INFO from Key_Value_Store with key : {key}")
+    logger.info(f"Getting USER_INFO from Key_Value_Store with key : {key}")
     return load_key_value(key)
 
 
@@ -61,7 +61,7 @@ def get_user_info(key: str,  _: User | None = Depends(current_user)) -> KeyValue
 def delete_user_info(key: str,  _: User | None = Depends(current_user)) -> None:
     key = f"{USER_INFO_KEY}{key}"
     delete_key_value_generic(key)
-    logger.error(f"key : {key} is deleted from Key_Value_Store")
+    logger.info(f"key : {key} is deleted from Key_Value_Store")
 
 
 @basic_router.put("/image_url")
