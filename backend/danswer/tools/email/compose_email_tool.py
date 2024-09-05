@@ -8,6 +8,7 @@ from danswer.dynamic_configs.interface import JSON_ro
 from danswer.llm.answering.prompts.build import AnswerPromptBuilder, default_build_system_message, \
     default_build_user_message
 from danswer.llm.utils import message_to_string, message_generator_to_string_generator
+from danswer.server.settings.api import get_user_info
 from danswer.tools.tool import Tool
 from danswer.tools.tool import ToolResponse
 from danswer.utils.logger import setup_logger
@@ -139,6 +140,10 @@ class ComposeEmailTool(Tool):
         logger.info(f"Email plugin - mail composing started")
 
         query = cast(str, kwargs["query"])
+
+        name = get_user_info(self.user.email)
+
+        query = f"{query} and my name is { 'Your Name' if name is None else name.value}"
 
         prompt_builder = AnswerPromptBuilder(self.history, self.llm_config)
 

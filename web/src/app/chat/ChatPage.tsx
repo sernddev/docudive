@@ -454,7 +454,7 @@ export function ChatPage({
     
     if (response.ok) {
       setPopup({
-        message: `Email sent to ${selectedPersona?.users[0].email} successfully!`,
+        message: `Email sent to ${user?.email} successfully!`,
         type: "success",
       });
     } else {
@@ -468,7 +468,7 @@ export function ChatPage({
   };
 
   const sendEmailToDraft = async (messageId: number) =>{
-    const mailtoLink = `mailto:${selectedPersona?.users[0].email}?subject=${encodeURIComponent("Subject")}&body=${encodeURIComponent("Email body")}`;
+    const mailtoLink = `mailto:${user?.email}?subject=${encodeURIComponent("Subject")}&body=${encodeURIComponent("Email body")}`;
     window.location.href = mailtoLink;
   };
 
