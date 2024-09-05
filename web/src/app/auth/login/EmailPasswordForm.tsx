@@ -67,7 +67,7 @@ export function EmailPasswordForm({
               
               if (isSignup)
               {
-                  const response = await fetch("/api/settings/user_info/", {
+                  const response = await fetch("/api/settings/user_info", {
                   method: "PUT",
                   headers: {
                     "Content-Type": "application/json",
