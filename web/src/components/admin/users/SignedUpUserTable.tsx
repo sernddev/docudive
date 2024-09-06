@@ -90,6 +90,34 @@ const DeactivaterButton = ({
   );
 };
 
+
+const ResetPasswordButton = ({
+  user,
+  onSuccess,
+  onError,
+}: {
+  user: User;
+  onSuccess: () => void;
+  onError: (message: string) => void;
+}) => {
+  const { trigger, isMutating } = useSWRMutation(
+       "/api/manage/reset-password",
+    userMutationFetcher,
+    { onSuccess, onError }
+  );
+  return (
+    <Button
+      className="w-min"
+      onClick={() => trigger({ user_email: user.email })}
+      disabled={isMutating}
+      size="xs"
+    >
+      Reset Password
+    </Button>
+  );
+};
+
+
 const SignedUpUserTable = ({
   users,
   setPopup,
@@ -118,6 +146,12 @@ const SignedUpUserTable = ({
   };
   const onPromotionError = (errorMsg: string) => {
     onError(`Unable to promote user - ${errorMsg}`);
+  };
+  const onPasswordResetSuccess = () => {
+    onSuccess("User password has been reset and new password sent to user email!");
+  };
+  const onPasswordResetError = (errorMsg: string) => {
+    onError(`Unable to reset user password - ${errorMsg}`);
   };
   const onDemotionSuccess = () => {
     onSuccess("Admin demoted to basic user!");
@@ -172,6 +206,11 @@ const SignedUpUserTable = ({
                       deactivate={user.status === UserStatus.live}
                       setPopup={setPopup}
                       mutate={mutate}
+                    />
+                    <ResetPasswordButton
+                      user={user}
+                      onSuccess={onPasswordResetSuccess}
+                      onError={onPasswordResetError}
                     />
                   </div>
                 </TableCell>
