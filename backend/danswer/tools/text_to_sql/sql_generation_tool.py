@@ -249,13 +249,6 @@ class SqlGenerationTool(Tool):
                     final_response = json_response
                 elif isChartInQuery:
                     tabular_data_summarization = ''
-                    # image_path = self.plot_summarize_sql.resolve_parameters_and_generate_chart(filtered_df,
-                    #                                                                            sql_generation_tool_output,
-                    #                                                                            query)
-                    # image_path = self.plot_summarize_sql.resolve_chart_type_and_parameters_and_generate_and_execute_python_code(sql_query=sql_generation_tool_output,
-                    #                                                                                                             filtered_df=filtered_df,
-                    #                                                                                                             user_requirement=query,
-                    #                                                                                                             metadata=self.metadata)
                     image_path = self.plot_summarize_sql.resolve_parameters_and_generate_chart(sql_query=sql_generation_tool_output,
                                                                                                filtered_df=filtered_df,
                                                                                                user_requirement=query,
