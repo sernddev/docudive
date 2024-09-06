@@ -21,6 +21,7 @@ from danswer.tools.questions_recommender.recomend_questions_using_llm import Que
 
 from danswer.tools.tool import Tool
 from danswer.tools.tool import ToolResponse
+from danswer.tools.utils import generate_dataframe_from_excel
 from danswer.utils.logger import setup_logger
 from danswer.db.models import Persona
 from danswer.db.models import User
@@ -297,7 +298,7 @@ class SqlGenerationTool(Tool):
         #SUMMARIZATION_PROMPT_FOR_TABULAR_DATA.format(user_query, formatted_table)
         logger.info(SUMMARIZATION_PROMPT_FOR_TABULAR_DATA)
 
-        llm_response = self.llm.invoke(prompt=SUMMARIZATION_PROMPT_FOR_TABULAR_DATA.format(user_query, tabular_data))
+        llm_response = self.llm.invoke(prompt=SUMMARIZATION_PROMPT_FOR_TABULAR_DATA.format(user_query, tabular_data), metadata=self.metadata)
         sql_query = llm_response.content
 
         return sql_query

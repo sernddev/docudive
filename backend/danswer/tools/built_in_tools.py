@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from danswer.db.models import Persona
 from danswer.db.models import Tool as ToolDBModel
 from danswer.tools.excel.excel_analyzer_tool import ExcelAnalyzerTool
+from danswer.tools.images.image_generation_tool import ImageGenerationTool
 from danswer.tools.internet_search.internet_search_tool import InternetSearchTool
 from danswer.tools.infographics.data_infographics_tool import FileDataInfographicsTool
 from danswer.tools.search.search_tool import SearchTool

@@ -236,7 +236,7 @@ export function ChatInputBar({
                   href="/assistants/new"
                 >
                   <FiPlus size={17} />
-                  <p>Create a new assistant</p>
+                  <p>Create a new plugin</p>
                 </a>
               </div>
             </div>
@@ -373,17 +373,18 @@ export function ChatInputBar({
             {/*    onClick={() => setConfigModalActiveTab("assistants")}*/}
             {/*  />*/}
 
-            {/*  <ChatInputOption*/}
-            {/*    flexPriority="second"*/}
-            {/*    name={*/}
-            {/*      llmOverrideManager.llmOverride.modelName ||*/}
-            {/*      (selectedAssistant*/}
-            {/*        ? selectedAssistant.llm_model_version_override || llmName*/}
-            {/*        : llmName)*/}
-            {/*    }*/}
-            {/*    icon={FiCpu}*/}
-            {/*    onClick={() => setConfigModalActiveTab("llms")}*/}
-            {/*  />*/}
+              <ChatInputOption
+                  flexPriority="second"
+                  name={
+                      llmOverrideManager.llmOverride.modelName||(llmName)
+                    // ||
+                    // (selectedAssistant
+                    //     ? selectedAssistant.llm_model_version_override || llmName
+                    //     : llmName)
+                  }
+                  icon={FiCpu}
+                  onClick={() => setConfigModalActiveTab("llms")}
+                  selectedTool={selectedAssistant?.tools[0]?.name}/>
 
             {/*  {!retrievalDisabled && (*/}
             {/*    <ChatInputOption*/}
@@ -411,7 +412,8 @@ export function ChatInputBar({
                     }
                   };
                   input.click();
-                }}
+                }}                
+                selectedTool={selectedAssistant?.tools[0]?.name}
               />
             </div>
             <div className="absolute bottom-2.5 right-10">

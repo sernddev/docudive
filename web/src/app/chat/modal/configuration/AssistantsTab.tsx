@@ -72,6 +72,8 @@ export function AssistantsTab({
                       toolIcon = <FiImage className="mr-1 my-auto" />;
                   } else if (tool.name === "FileDataInfographicsTool") {
                       toolName = "File Data Infographics";
+                  } else if (tool.name === "ExcelAnalyzerTool") {
+                      toolName = "Excel Analyzer";
                       toolIcon = <FiImage className="mr-1 my-auto" />;
                   }
 

@@ -22,15 +22,18 @@ class EmailService:
     def __init__(self):
         self.logger.info('Initializing SendEmail class')
 
-    def send_email(self, receiver_email, email_content):
-        try:
-            subject = self.extract_subject(email_content) or "Sent From ComposeEmailTool"
+    def send_email(self, receiver_email, email_content, email_subject=None):
 
-            # Remove the subject line from the email content
-            email_content_without_subject = re.sub(SUBJECT_MATCH_PATTERN, "", email_content)
+        try:
+            if email_subject is None:
+                email_subject = self.extract_subject(email_content) or "Email from ALYAH"
+                # Remove the subject line from the email content
+                email_content_without_subject = re.sub(SUBJECT_MATCH_PATTERN, "", email_content)
+            else:
+                email_content_without_subject = email_content
 
             msg = MIMEMultipart("alternative")
-            msg['Subject'] = subject
+            msg['Subject'] = email_subject
             msg['To'] = receiver_email
 
             # Create the HTML body and set the content-type as 'text/html'
@@ -45,7 +48,7 @@ class EmailService:
                 server.sendmail(EMAIL_FROM, receiver_email, msg.as_string())
                 self.logger.info(f'Email sent successfully to {receiver_email}')
         except (smtplib.SMTPException, ConnectionRefusedError) as e:
-            self.logger.info(f'Error sending email:{e}')
+            self.logger.error(f'Error sending email:{e}')
 
     @staticmethod
     def extract_subject(input_text):

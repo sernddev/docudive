@@ -607,8 +607,6 @@ def fetch_chat_file(
     return Response(content=file_io.read(), media_type="image/jpeg")
 
 
-# // Make request to /file/recommend/questions
-# get file content by file id
 @router.get("/file/recommend/questions/{file_id}/{persona_id}")
 def recommend_questions(
         file_id: str,
