@@ -1,5 +1,6 @@
 import io
 import uuid
+from typing import Dict, Any
 
 from fastapi import APIRouter
 from fastapi import Depends
@@ -43,7 +44,7 @@ from danswer.llm.answering.prompts.citations_prompt import (
     compute_max_document_tokens_for_persona,
 )
 from danswer.llm.exceptions import GenAIDisabledException
-from danswer.llm.factory import get_default_llms
+from danswer.llm.factory import get_default_llms, get_llms_for_persona
 from danswer.llm.headers import get_litellm_additional_request_headers
 from danswer.llm.utils import get_default_llm_tokenizer
 from danswer.secondary_llm_flows.chat_session_naming import (
@@ -65,6 +66,9 @@ from danswer.server.query_and_chat.models import RenameChatSessionResponse
 from danswer.server.query_and_chat.models import SearchFeedbackRequest
 from danswer.server.query_and_chat.models import UpdateChatSessionThreadRequest
 from danswer.server.query_and_chat.token_limit import check_token_rate_limits
+from danswer.tools.email.send_email import EmailService
+from danswer.tools.infographics.plot_summarize_generate_sql import load_to_dataframe
+from danswer.tools.questions_recommender.recomend_questions_using_llm import QuestionsRecommenderUsingLLM
 from danswer.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -74,8 +78,8 @@ router = APIRouter(prefix="/chat")
 
 @router.get("/get-user-chat-sessions")
 def get_user_chat_sessions(
-    user: User | None = Depends(current_user),
-    db_session: Session = Depends(get_session),
+        user: User | None = Depends(current_user),
+        db_session: Session = Depends(get_session),
 ) -> ChatSessionsResponse:
     user_id = user.id if user is not None else None
 
@@ -105,9 +109,9 @@ def get_user_chat_sessions(
 
 @router.put("/update-chat-session-model")
 def update_chat_session_model(
-    update_thread_req: UpdateChatSessionThreadRequest,
-    user: User | None = Depends(current_user),
-    db_session: Session = Depends(get_session),
+        update_thread_req: UpdateChatSessionThreadRequest,
+        user: User | None = Depends(current_user),
+        db_session: Session = Depends(get_session),
 ) -> None:
     chat_session = get_chat_session_by_id(
         chat_session_id=update_thread_req.chat_session_id,
@@ -122,10 +126,10 @@ def update_chat_session_model(
 
 @router.get("/get-chat-session/{session_id}")
 def get_chat_session(
-    session_id: int,
-    is_shared: bool = False,
-    user: User | None = Depends(current_user),
-    db_session: Session = Depends(get_session),
+        session_id: int,
+        is_shared: bool = False,
+        user: User | None = Depends(current_user),
+        db_session: Session = Depends(get_session),
 ) -> ChatSessionDetailResponse:
     user_id = user.id if user is not None else None
 
@@ -176,16 +180,16 @@ def get_chat_session(
 
 @router.post("/create-chat-session")
 def create_new_chat_session(
-    chat_session_creation_request: ChatSessionCreationRequest,
-    user: User | None = Depends(current_user),
-    db_session: Session = Depends(get_session),
+        chat_session_creation_request: ChatSessionCreationRequest,
+        user: User | None = Depends(current_user),
+        db_session: Session = Depends(get_session),
 ) -> CreateChatSessionID:
     user_id = user.id if user is not None else None
     try:
         new_chat_session = create_chat_session(
             db_session=db_session,
             description=chat_session_creation_request.description
-            or "",  # Leave the naming till later to prevent delay
+                        or "",  # Leave the naming till later to prevent delay
             user_id=user_id,
             persona_id=chat_session_creation_request.persona_id,
         )
@@ -198,10 +202,10 @@ def create_new_chat_session(
 
 @router.put("/rename-chat-session")
 def rename_chat_session(
-    rename_req: ChatRenameRequest,
-    request: Request,
-    user: User | None = Depends(current_user),
-    db_session: Session = Depends(get_session),
+        rename_req: ChatRenameRequest,
+        request: Request,
+        user: User | None = Depends(current_user),
+        db_session: Session = Depends(get_session),
 ) -> RenameChatSessionResponse:
     name = rename_req.name
     chat_session_id = rename_req.chat_session_id
@@ -246,10 +250,10 @@ def rename_chat_session(
 
 @router.patch("/chat-session/{session_id}")
 def patch_chat_session(
-    session_id: int,
-    chat_session_update_req: ChatSessionUpdateRequest,
-    user: User | None = Depends(current_user),
-    db_session: Session = Depends(get_session),
+        session_id: int,
+        chat_session_update_req: ChatSessionUpdateRequest,
+        user: User | None = Depends(current_user),
+        db_session: Session = Depends(get_session),
 ) -> None:
     user_id = user.id if user is not None else None
     update_chat_session(
@@ -263,9 +267,9 @@ def patch_chat_session(
 
 @router.delete("/delete-chat-session/{session_id}")
 def delete_chat_session_by_id(
-    session_id: int,
-    user: User | None = Depends(current_user),
-    db_session: Session = Depends(get_session),
+        session_id: int,
+        user: User | None = Depends(current_user),
+        db_session: Session = Depends(get_session),
 ) -> None:
     user_id = user.id if user is not None else None
     delete_chat_session(user_id, session_id, db_session)
@@ -273,10 +277,10 @@ def delete_chat_session_by_id(
 
 @router.post("/send-message")
 def handle_new_chat_message(
-    chat_message_req: CreateChatMessageRequest,
-    request: Request,
-    user: User | None = Depends(current_user),
-    _: None = Depends(check_token_rate_limits),
+        chat_message_req: CreateChatMessageRequest,
+        request: Request,
+        user: User | None = Depends(current_user),
+        _: None = Depends(check_token_rate_limits),
 ) -> StreamingResponse:
     """This endpoint is both used for all the following purposes:
     - Sending a new message in the session
@@ -289,9 +293,9 @@ def handle_new_chat_message(
     logger.debug(f"Received new chat message: {chat_message_req.message}")
 
     if (
-        not chat_message_req.message
-        and chat_message_req.prompt_id is not None
-        and not chat_message_req.use_existing_user_message
+            not chat_message_req.message
+            and chat_message_req.prompt_id is not None
+            and not chat_message_req.use_existing_user_message
     ):
         raise HTTPException(status_code=400, detail="Empty chat message is invalid")
 
@@ -309,9 +313,9 @@ def handle_new_chat_message(
 
 @router.put("/set-message-as-latest")
 def set_message_as_latest(
-    message_identifier: ChatMessageIdentifier,
-    user: User | None = Depends(current_user),
-    db_session: Session = Depends(get_session),
+        message_identifier: ChatMessageIdentifier,
+        user: User | None = Depends(current_user),
+        db_session: Session = Depends(get_session),
 ) -> None:
     user_id = user.id if user is not None else None
 
@@ -328,11 +332,30 @@ def set_message_as_latest(
     )
 
 
+@router.put("/send-mail/{chat_message_id}")
+def send_email_to_inbox(
+        chat_message_id: int,
+        user: User | None = Depends(current_user),
+        db_session: Session = Depends(get_session),
+) -> None:
+    try:
+        logger.info(
+            f"Email sending request received from user: {'not logged in' if user is None else user.email}, "
+            f"email will be sending to inbox")
+        user_id = user.id if user else None
+        chat_message = get_chat_message(chat_message_id, user_id, db_session)
+        email_content = chat_message.message
+        email_service = EmailService()
+        email_service.send_email(user.email, email_content)
+    except Exception as e:
+        logger.error(f'Error in email sending endpoint: {e}')
+
+
 @router.post("/create-chat-message-feedback")
 def create_chat_feedback(
-    feedback: ChatFeedbackRequest,
-    user: User | None = Depends(current_user),
-    db_session: Session = Depends(get_session),
+        feedback: ChatFeedbackRequest,
+        user: User | None = Depends(current_user),
+        db_session: Session = Depends(get_session),
 ) -> None:
     user_id = user.id if user else None
 
@@ -348,9 +371,9 @@ def create_chat_feedback(
 
 @router.post("/document-search-feedback")
 def create_search_feedback(
-    feedback: SearchFeedbackRequest,
-    _: User | None = Depends(current_user),
-    db_session: Session = Depends(get_session),
+        feedback: SearchFeedbackRequest,
+        _: User | None = Depends(current_user),
+        db_session: Session = Depends(get_session),
 ) -> None:
     """This endpoint isn't protected - it does not check if the user has access to the document
     Users could try changing boosts of arbitrary docs but this does not leak any data.
@@ -378,9 +401,9 @@ class MaxSelectedDocumentTokens(BaseModel):
 
 @router.get("/max-selected-document-tokens")
 def get_max_document_tokens(
-    persona_id: int,
-    user: User | None = Depends(current_user),
-    db_session: Session = Depends(get_session),
+        persona_id: int,
+        user: User | None = Depends(current_user),
+        db_session: Session = Depends(get_session),
 ) -> MaxSelectedDocumentTokens:
     try:
         persona = get_persona_by_id(
@@ -421,10 +444,10 @@ class ChatSeedResponse(BaseModel):
 
 @router.post("/seed-chat-session")
 def seed_chat(
-    chat_seed_request: ChatSeedRequest,
-    # NOTE: realistically, this will be an API key not an actual user
-    _: User | None = Depends(current_user),
-    db_session: Session = Depends(get_session),
+        chat_seed_request: ChatSeedRequest,
+        # NOTE: realistically, this will be an API key not an actual user
+        _: User | None = Depends(current_user),
+        db_session: Session = Depends(get_session),
 ) -> ChatSeedResponse:
     try:
         new_chat_session = create_chat_session(
@@ -447,11 +470,11 @@ def seed_chat(
             chat_session_id=new_chat_session.id,
             parent_message=root_message,
             prompt_id=chat_seed_request.prompt_id
-            or (
-                new_chat_session.persona.prompts[0].id
-                if new_chat_session.persona.prompts
-                else None
-            ),
+                      or (
+                          new_chat_session.persona.prompts[0].id
+                          if new_chat_session.persona.prompts
+                          else None
+                      ),
             message=chat_seed_request.message,
             token_count=len(
                 get_default_llm_tokenizer().encode(chat_seed_request.message)
@@ -470,9 +493,9 @@ def seed_chat(
 
 @router.post("/file")
 def upload_files_for_chat(
-    files: list[UploadFile],
-    db_session: Session = Depends(get_session),
-    _: User | None = Depends(current_user),
+        files: list[UploadFile],
+        db_session: Session = Depends(get_session),
+        _: User | None = Depends(current_user),
 ) -> dict[str, list[FileDescriptor]]:
     image_content_types = {"image/jpeg", "image/png", "image/webp"}
     text_content_types = {
@@ -514,9 +537,9 @@ def upload_files_for_chat(
             raise HTTPException(status_code=400, detail=error_detail)
 
         if (
-            file.content_type in image_content_types
-            and file.size
-            and file.size > 20 * 1024 * 1024
+                file.content_type in image_content_types
+                and file.size
+                and file.size > 20 * 1024 * 1024
         ):
             raise HTTPException(
                 status_code=400,
@@ -573,12 +596,46 @@ def upload_files_for_chat(
 
 @router.get("/file/{file_id}")
 def fetch_chat_file(
-    file_id: str,
-    db_session: Session = Depends(get_session),
-    _: User | None = Depends(current_user),
+        file_id: str,
+        db_session: Session = Depends(get_session),
+        _: User | None = Depends(current_user),
 ) -> Response:
     file_store = get_default_file_store(db_session)
     file_io = file_store.read_file(file_id, mode="b")
     # NOTE: specifying "image/jpeg" here, but it still works for pngs
     # TODO: do this properly
     return Response(content=file_io.read(), media_type="image/jpeg")
+
+
+# // Make request to /file/recommend/questions
+# get file content by file id
+@router.get("/file/recommend/questions/{file_id}/{persona_id}")
+def recommend_questions(
+        file_id: str,
+        persona_id: int,
+        db_session: Session = Depends(get_session),
+        user: User | None = Depends(current_user)
+) -> dict[str, Any]:
+    error = None
+    questions = None
+    try:
+        persona = get_persona_by_id(
+            persona_id=persona_id,
+            user=user,
+            db_session=db_session,
+            is_for_edit=False,
+        )
+        llm, fast_llm = get_llms_for_persona(persona=persona,
+                                             llm_override=None,
+                                             additional_headers=None)
+
+        questions_recommender = QuestionsRecommenderUsingLLM(llm, llm.config, None)
+        file_store = get_default_file_store(db_session)
+        file_io = file_store.read_file(file_id, mode="b")
+        dataframe = load_to_dataframe(file_io.read())
+        questions = questions_recommender.recommend(dataframe)
+    except (GenAIDisabledException, Exception) as e:
+        logger.error(f'Exception received while executing recommend_questions: {str(e)}')
+        error = str(e)
+
+    return {"questions": questions, "error": error}
