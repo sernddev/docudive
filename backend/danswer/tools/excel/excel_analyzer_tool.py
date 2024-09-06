@@ -110,9 +110,6 @@ class ExcelAnalyzerTool(Tool):
             llm: LLM,
             force_run: bool = False,
     ) -> dict[str, Any] | None:
-        if not force_run:
-            return None
-
         rephrased_query = history_based_query_rephrase(
             query=query, history=history, llm=llm
         )
