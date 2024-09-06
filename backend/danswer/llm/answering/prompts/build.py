@@ -34,6 +34,18 @@ def default_build_system_message(
 
     return system_msg
 
+def default_build_system_message_by_prmpt(
+    prompt: str,
+) -> SystemMessage | None:
+    system_prompt = prompt.strip()
+    system_prompt = add_date_time_to_prompt(prompt_str=system_prompt)
+
+    if not system_prompt:
+        return None
+
+    system_msg = SystemMessage(content=system_prompt)
+
+    return system_msg
 
 def default_build_user_message(
     user_query: str, prompt_config: PromptConfig, files: list[InMemoryChatFile] = []
@@ -43,6 +55,22 @@ def default_build_user_message(
             task_prompt=prompt_config.task_prompt, user_query=user_query
         )
         if prompt_config.task_prompt
+        else user_query
+    )
+    user_prompt = user_prompt.strip()
+    user_msg = HumanMessage(
+        content=build_content_with_imgs(user_prompt, files) if files else user_prompt
+    )
+    return user_msg
+
+def default_build_user_message_by_task_prompt(
+    user_query: str, task_prompt: str, files: list[InMemoryChatFile] = []
+) -> HumanMessage:
+    user_prompt = (
+        CHAT_USER_CONTEXT_FREE_PROMPT.format(
+            task_prompt=task_prompt, user_query=user_query
+        )
+        if task_prompt
         else user_query
     )
     user_prompt = user_prompt.strip()
