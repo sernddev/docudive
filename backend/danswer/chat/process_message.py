@@ -68,6 +68,7 @@ from danswer.tools.built_in_tools import get_built_in_tool_by_id
 from danswer.tools.custom.custom_tool import build_custom_tools_from_openapi_schema
 from danswer.tools.custom.custom_tool import CUSTOM_TOOL_RESPONSE_ID
 from danswer.tools.custom.custom_tool import CustomToolCallSummary
+from danswer.tools.excel.excel_analyzer_tool import ExcelAnalyzerTool, EXCEL_ANALYZER_RESPONSE_ID
 from danswer.tools.force import ForceUseTool
 from danswer.tools.images.image_generation_tool import IMAGE_GENERATION_RESPONSE_ID
 from danswer.tools.images.image_generation_tool import ImageGenerationResponse
@@ -77,6 +78,7 @@ from danswer.tools.internet_search.internet_search_tool import (
 )
 from danswer.tools.internet_search.internet_search_tool import InternetSearchResponse
 from danswer.tools.internet_search.internet_search_tool import InternetSearchTool
+from danswer.tools.infographics.data_infographics_tool import FileDataInfographicsTool
 from danswer.tools.search.search_tool import SEARCH_RESPONSE_SUMMARY_ID
 from danswer.tools.search.search_tool import SearchResponseSummary
 from danswer.tools.search.search_tool import SearchTool
@@ -93,12 +95,11 @@ from danswer.tools.summary.summary_tool import SummaryGenerationTool, SUMMARY_GE
 from danswer.tools.text_to_sql.sql_generation_tool import SqlGenerationTool, SQL_GENERATION_RESPONSE_ID
 from danswer.tools.email.compose_email_tool import ComposeEmailTool, COMPOSE_EMAIL_RESPONSE_ID
 
-
 logger = setup_logger()
 
 
 def translate_citations(
-    citations_list: list[CitationInfo], db_docs: list[DbSearchDoc]
+        citations_list: list[CitationInfo], db_docs: list[DbSearchDoc]
 ) -> dict[int, int]:
     """Always cites the first instance of the document_id, assumes the db_docs
     are sorted in the order displayed in the UI"""
@@ -118,10 +119,10 @@ def translate_citations(
 
 
 def _handle_search_tool_response_summary(
-    packet: ToolResponse,
-    db_session: Session,
-    selected_search_docs: list[DbSearchDoc] | None,
-    dedupe_docs: bool = False,
+        packet: ToolResponse,
+        db_session: Session,
+        selected_search_docs: list[DbSearchDoc] | None,
+        dedupe_docs: bool = False,
 ) -> tuple[QADocsResponse, list[DbSearchDoc], list[int] | None]:
     response_sumary = cast(SearchResponseSummary, packet.response)
 
@@ -160,8 +161,8 @@ def _handle_search_tool_response_summary(
 
 
 def _handle_internet_search_tool_response_summary(
-    packet: ToolResponse,
-    db_session: Session,
+        packet: ToolResponse,
+        db_session: Session,
 ) -> tuple[QADocsResponse, list[DbSearchDoc]]:
     internet_search_response = cast(InternetSearchResponse, packet.response)
     server_search_docs = internet_search_response_to_search_docs(
@@ -191,20 +192,20 @@ def _handle_internet_search_tool_response_summary(
 
 
 def _check_should_force_search(
-    new_msg_req: CreateChatMessageRequest,
+        new_msg_req: CreateChatMessageRequest,
 ) -> ForceUseTool | None:
     # If files are already provided, don't run the search tool
     if new_msg_req.file_descriptors:
         return None
 
     if (
-        new_msg_req.query_override
-        or (
+            new_msg_req.query_override
+            or (
             new_msg_req.retrieval_options
             and new_msg_req.retrieval_options.run_search == OptionalSearchSetting.ALWAYS
-        )
-        or new_msg_req.search_doc_ids
-        or DISABLE_LLM_CHOOSE_SEARCH
+    )
+            or new_msg_req.search_doc_ids
+            or DISABLE_LLM_CHOOSE_SEARCH
     ):
         args = (
             {"query": new_msg_req.query_override}
@@ -224,32 +225,52 @@ def _check_should_force_search(
 
 
 ChatPacket = (
-    StreamingError
-    | QADocsResponse
-    | LLMRelevanceFilterResponse
-    | ChatMessageDetail
-    | DanswerAnswerPiece
-    | CitationInfo
-    | ImageGenerationDisplay
-    | CustomToolResponse
+        StreamingError
+        | QADocsResponse
+        | LLMRelevanceFilterResponse
+        | ChatMessageDetail
+        | DanswerAnswerPiece
+        | CitationInfo
+        | ImageGenerationDisplay
+        | CustomToolResponse
 )
 ChatPacketStream = Iterator[ChatPacket]
 
 
+def set_metadata(chat_session_id, parent_id, reference_doc_ids, retrieval_options, prompt_id, user_id):
+    return {
+        "generation_name": "docudive",  # set langfuse Generation Name
+        "generation_id": chat_session_id,  # set langfuse Generation ID
+        "parent_observation_id": parent_id,  # set langfuse Parent Observation ID
+        "version": "test-generation-version",  # set langfuse Generation Version
+        "trace_user_id": user_id,  # set langfuse Trace User ID
+        "session_id": chat_session_id,  # set langfuse Session ID
+        "tags": [prompt_id, "tag2"],  # set langfuse Tags
+        "trace_name": "new-trace-name",  # set langfuse Trace Name
+        "trace_id": "trace-id22",  # set langfuse Trace ID
+        # "trace_metadata": {"key": "value"},  # set langfuse Trace Metadata
+        # "trace_version": "test-trace-version",
+        # set langfuse Trace Version (if not set, defaults to Generation Version)
+        # "trace_release": "test-trace-release",  # set langfuse Trace Release
+        "existing_trace_id": parent_id,
+        "trace_metadata": {"key": "updated_trace_value"},
+    }
+
+
 def stream_chat_message_objects(
-    new_msg_req: CreateChatMessageRequest,
-    user: User | None,
-    db_session: Session,
-    # Needed to translate persona num_chunks to tokens to the LLM
-    default_num_chunks: float = MAX_CHUNKS_FED_TO_CHAT,
-    # For flow with search, don't include as many chunks as possible since we need to leave space
-    # for the chat history, for smaller models, we likely won't get MAX_CHUNKS_FED_TO_CHAT chunks
-    max_document_percentage: float = CHAT_TARGET_CHUNK_PERCENTAGE,
-    # if specified, uses the last user message and does not create a new user message based
-    # on the `new_msg_req.message`. Currently, requires a state where the last message is a
-    # user message (e.g. this can only be used for the chat-seeding flow).
-    use_existing_user_message: bool = False,
-    litellm_additional_headers: dict[str, str] | None = None,
+        new_msg_req: CreateChatMessageRequest,
+        user: User | None,
+        db_session: Session,
+        # Needed to translate persona num_chunks to tokens to the LLM
+        default_num_chunks: float = MAX_CHUNKS_FED_TO_CHAT,
+        # For flow with search, don't include as many chunks as possible since we need to leave space
+        # for the chat history, for smaller models, we likely won't get MAX_CHUNKS_FED_TO_CHAT chunks
+        max_document_percentage: float = CHAT_TARGET_CHUNK_PERCENTAGE,
+        # if specified, uses the last user message and does not create a new user message based
+        # on the `new_msg_req.message`. Currently, requires a state where the last message is a
+        # user message (e.g. this can only be used for the chat-seeding flow).
+        use_existing_user_message: bool = False,
+        litellm_additional_headers: dict[str, str] | None = None,
 ) -> ChatPacketStream:
     """Streams in order:
     1. [conditional] Retrieved documents if a search needs to be run
@@ -273,6 +294,10 @@ def stream_chat_message_objects(
         reference_doc_ids = new_msg_req.search_doc_ids
         retrieval_options = new_msg_req.retrieval_options
         alternate_assistant_id = new_msg_req.alternate_assistant_id
+
+        # set metadata
+        metadata = set_metadata(chat_session_id, parent_id, reference_doc_ids, retrieval_options, new_msg_req.prompt_id,
+                                user_id)
 
         # use alternate persona if alternative assistant id is passed in
         if alternate_assistant_id is not None:
@@ -424,7 +449,7 @@ def stream_chat_message_objects(
                 ),
                 max_window_percentage=max_document_percentage,
                 use_sections=new_msg_req.chunks_above > 0
-                or new_msg_req.chunks_below > 0,
+                             or new_msg_req.chunks_below > 0,
             )
 
         # Cannot determine these without the LLM step or breaking out early
@@ -451,7 +476,7 @@ def stream_chat_message_objects(
             PromptConfig.from_model(
                 final_msg.prompt,
                 prompt_override=(
-                    new_msg_req.prompt_override or chat_session.prompt_override
+                        new_msg_req.prompt_override or chat_session.prompt_override
                 ),
             )
             if not persona
@@ -483,15 +508,30 @@ def stream_chat_message_objects(
                     tool_dict[db_tool_model.id] = [search_tool]
                 elif tool_cls.__name__ == SqlGenerationTool.__name__:
                     sql_generation_tool = SqlGenerationTool(
+                        history=[PreviousMessage.from_chat_message(msg, files) for msg in history_msgs],
                         db_session=db_session,
                         user=user,
                         persona=persona,
                         prompt_config=prompt_config,
                         llm_config=llm.config,
                         llm=llm,
-                        files=latest_query_files
+                        files=latest_query_files,
+                        metadata=metadata
                     )
                     tool_dict[db_tool_model.id] = [sql_generation_tool]
+                elif tool_cls.__name__ == FileDataInfographicsTool.__name__:
+                    questions_recommender_tool = FileDataInfographicsTool(
+                        history=[PreviousMessage.from_chat_message(msg, files) for msg in history_msgs],
+                        db_session=db_session,
+                        user=user,
+                        persona=persona,
+                        prompt_config=prompt_config,
+                        llm_config=llm.config,
+                        llm=llm,
+                        files=latest_query_files,
+                        metadata=metadata
+                    )
+                    tool_dict[db_tool_model.id] = [questions_recommender_tool]
                 elif tool_cls.__name__ == SummaryGenerationTool.__name__:
                     summary_generation_tool = SummaryGenerationTool(
                         user=user,
@@ -499,7 +539,7 @@ def stream_chat_message_objects(
                         prompt_config=prompt_config,
                         llm_config=llm.config,
                         llm=llm,
-                        files = latest_query_files
+                        files=latest_query_files
                     )
                     tool_dict[db_tool_model.id] = [summary_generation_tool]
                 elif tool_cls.__name__ == ComposeEmailTool.__name__:
@@ -511,12 +551,25 @@ def stream_chat_message_objects(
                         llm=llm
                     )
                     tool_dict[db_tool_model.id] = [email_compose_tool]
+                elif tool_cls.__name__ == ExcelAnalyzerTool.__name__:
+                    excel_analyzer_tool = ExcelAnalyzerTool(
+                        history=[PreviousMessage.from_chat_message(msg, files) for msg in history_msgs],
+                        db_session=db_session,
+                        user=user,
+                        persona=persona,
+                        prompt_config=prompt_config,
+                        llm_config=llm.config,
+                        llm=llm,
+                        files=latest_query_files,
+                        metadata=metadata
+                    )
+                    tool_dict[db_tool_model.id] = [excel_analyzer_tool]
                 elif tool_cls.__name__ == ImageGenerationTool.__name__:
                     img_generation_llm_config: LLMConfig | None = None
                     if (
-                        llm
-                        and llm.config.api_key
-                        and llm.config.model_provider == "openai"
+                            llm
+                            and llm.config.api_key
+                            and llm.config.model_provider == "openai"
                     ):
                         img_generation_llm_config = llm.config
                     else:
@@ -594,16 +647,16 @@ def stream_chat_message_objects(
             ),
             prompt_config=prompt_config,
             llm=(
-                llm
-                or get_main_llm_from_tuple(
-                    get_llms_for_persona(
-                        persona=persona,
-                        llm_override=(
+                    llm
+                    or get_main_llm_from_tuple(
+                get_llms_for_persona(
+                    persona=persona,
+                    llm_override=(
                             new_msg_req.llm_override or chat_session.llm_override
-                        ),
-                        additional_headers=litellm_additional_headers,
-                    )
+                    ),
+                    additional_headers=litellm_additional_headers,
                 )
+            )
             ),
             message_history=[
                 PreviousMessage.from_chat_message(msg, files) for msg in history_msgs
@@ -680,6 +733,8 @@ def stream_chat_message_objects(
                 elif packet.id == SUMMARY_GENERATION_RESPONSE_ID:
                     yield cast(ChatPacket, packet)
                 elif packet.id == COMPOSE_EMAIL_RESPONSE_ID:
+                    yield cast(ChatPacket, packet)
+                elif packet.id == EXCEL_ANALYZER_RESPONSE_ID:
                     yield cast(ChatPacket, packet)
                 elif packet.id == CUSTOM_TOOL_RESPONSE_ID:
                     custom_tool_response = cast(CustomToolCallSummary, packet.response)
@@ -761,10 +816,10 @@ def stream_chat_message_objects(
 
 @log_generator_function_time()
 def stream_chat_message(
-    new_msg_req: CreateChatMessageRequest,
-    user: User | None,
-    use_existing_user_message: bool = False,
-    litellm_additional_headers: dict[str, str] | None = None,
+        new_msg_req: CreateChatMessageRequest,
+        user: User | None,
+        use_existing_user_message: bool = False,
+        litellm_additional_headers: dict[str, str] | None = None,
 ) -> Iterator[str]:
     with get_session_context_manager() as db_session:
         objects = stream_chat_message_objects(
