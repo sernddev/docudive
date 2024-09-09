@@ -9,6 +9,7 @@ from danswer.llm.answering.prompts.build import AnswerPromptBuilder, default_bui
     default_build_user_message
 from danswer.llm.utils import message_to_string, message_generator_to_string_generator
 from danswer.server.settings.api import get_user_info
+from danswer.server.settings.models import KeyValueStoreGeneric
 from danswer.tools.tool import Tool
 from danswer.tools.tool import ToolResponse
 from danswer.utils.logger import setup_logger
@@ -16,7 +17,6 @@ from danswer.db.models import Persona
 from danswer.db.models import User
 from danswer.llm.answering.models import PromptConfig, PreviousMessage
 from danswer.llm.interfaces import LLMConfig, LLM
-from danswer.tools.email.send_email import EmailService
 
 logger = setup_logger()
 
@@ -141,9 +141,14 @@ class ComposeEmailTool(Tool):
 
         query = cast(str, kwargs["query"])
 
-        name = get_user_info(self.user.email)
+        try:
+            if self.user:
+                name = get_user_info(self.user.email)
+        except Exception as ex:
+            logger.error(f"Error occurred while getting user info {ex}")
+            name = KeyValueStoreGeneric(key=self.user.email, value="Your Name")
 
-        query = f"{query} and my name is { 'Your Name' if name is None else name.value}"
+        query = f"{query} and my name is {'Your Name' if self.user is None else name.value}"
 
         prompt_builder = AnswerPromptBuilder(self.history, self.llm_config)
 
