@@ -44,6 +44,8 @@ from danswer.tools.images.image_generation_tool import IMAGE_GENERATION_RESPONSE
 from danswer.tools.images.image_generation_tool import ImageGenerationResponse
 from danswer.tools.images.image_generation_tool import ImageGenerationTool
 from danswer.tools.images.prompt import build_image_generation_user_prompt
+from danswer.tools.infographics.data_infographics_tool import FILE_DATA_INFOGRAPHICS_RESPONSE_ID, \
+    FileDataInfographicsTool
 from danswer.tools.internet_search.internet_search_tool import InternetSearchTool
 from danswer.tools.message import build_tool_message
 from danswer.tools.message import ToolCallSummary
@@ -433,6 +435,11 @@ class Answer:
         elif tool.name == ExcelAnalyzerTool._NAME:
             for response in tool_runner.tool_responses():
                 if response.id == EXCEL_ANALYZER_RESPONSE_ID:
+                    res1 = yield response.response
+                    return [DanswerAnswerPiece(answer_piece=res1)]
+        elif tool.name == FileDataInfographicsTool._NAME:
+            for response in tool_runner.tool_responses():
+                if response.id == FILE_DATA_INFOGRAPHICS_RESPONSE_ID:
                     res1 = yield response.response
                     return [DanswerAnswerPiece(answer_piece=res1)]
         else:
