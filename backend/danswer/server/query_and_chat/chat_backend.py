@@ -1,5 +1,6 @@
 import io
 import uuid
+from typing import Dict, Any
 
 from fastapi import APIRouter
 from fastapi import Depends
@@ -43,7 +44,7 @@ from danswer.llm.answering.prompts.citations_prompt import (
     compute_max_document_tokens_for_persona,
 )
 from danswer.llm.exceptions import GenAIDisabledException
-from danswer.llm.factory import get_default_llms
+from danswer.llm.factory import get_default_llms, get_llms_for_persona
 from danswer.llm.headers import get_litellm_additional_request_headers
 from danswer.llm.utils import get_default_llm_tokenizer
 from danswer.secondary_llm_flows.chat_session_naming import (
@@ -66,6 +67,8 @@ from danswer.server.query_and_chat.models import SearchFeedbackRequest
 from danswer.server.query_and_chat.models import UpdateChatSessionThreadRequest
 from danswer.server.query_and_chat.token_limit import check_token_rate_limits
 from danswer.tools.email.send_email import EmailService
+from danswer.tools.infographics.plot_summarize_generate_sql import load_to_dataframe
+from danswer.tools.questions_recommender.recomend_questions_using_llm import QuestionsRecommenderUsingLLM
 from danswer.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -602,3 +605,35 @@ def fetch_chat_file(
     # NOTE: specifying "image/jpeg" here, but it still works for pngs
     # TODO: do this properly
     return Response(content=file_io.read(), media_type="image/jpeg")
+
+
+@router.get("/file/recommend/questions/{file_id}/{persona_id}")
+def recommend_questions(
+        file_id: str,
+        persona_id: int,
+        db_session: Session = Depends(get_session),
+        user: User | None = Depends(current_user)
+) -> dict[str, Any]:
+    error = None
+    questions = None
+    try:
+        persona = get_persona_by_id(
+            persona_id=persona_id,
+            user=user,
+            db_session=db_session,
+            is_for_edit=False,
+        )
+        llm, fast_llm = get_llms_for_persona(persona=persona,
+                                             llm_override=None,
+                                             additional_headers=None)
+
+        questions_recommender = QuestionsRecommenderUsingLLM(llm, llm.config, None)
+        file_store = get_default_file_store(db_session)
+        file_io = file_store.read_file(file_id, mode="b")
+        dataframe = load_to_dataframe(file_io.read())
+        questions = questions_recommender.recommend(dataframe)
+    except (GenAIDisabledException, Exception) as e:
+        logger.error(f'Exception received while executing recommend_questions: {str(e)}')
+        error = str(e)
+
+    return {"questions": questions, "error": error}

@@ -30,13 +30,14 @@ from danswer.server.manage.models import AllUsersResponse
 from danswer.server.manage.models import UserByEmail
 from danswer.server.manage.models import UserInfo
 from danswer.server.manage.models import UserRoleResponse
-from danswer.server.manage.models import UserResetPasswordRequest
 from danswer.server.models import FullUserSnapshot
 from danswer.server.models import InvitedUserSnapshot
 from danswer.server.models import MinimalUserSnapshot
 from danswer.utils.logger import setup_logger
 from ee.danswer.db.api_key import is_api_key_email_address
 from fastapi_users.password import PasswordHelper
+from danswer.tools.email.send_email import EmailService
+from danswer.utils.password_generator import generate_password
 
 logger = setup_logger()
 
@@ -87,20 +88,31 @@ async def demote_admin(
 
 @router.patch("/manage/reset-password")
 def reset_password(
-    user_reset_pwd: UserResetPasswordRequest,
-    _: User = Depends(current_admin_user),
+    user_email: UserByEmail,
+    _: User | None = Depends(current_admin_user),
     db_session: Session = Depends(get_session),
 ) -> None:
-    user = get_user_by_email(
-        email=user_reset_pwd.user_email, db_session=db_session
-    )
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    try:
+        logger.info(f"Password Reset Request came for: {user_email.user_email}")
+        user_to_reset_password = get_user_by_email(
+            email=user_email.user_email, db_session=db_session
+        )
+        if not user_to_reset_password:
+            raise HTTPException(status_code=404, detail="User not found")
 
-    fastapi_users_pw_helper = PasswordHelper()
-    user.hashed_password = fastapi_users_pw_helper.hash(user_reset_pwd.new_password)
-    db_session.add(user)
-    db_session.commit()
+        fastapi_users_pw_helper = PasswordHelper()
+        random_password = generate_password(6)
+        user_to_reset_password.hashed_password = fastapi_users_pw_helper.hash(random_password)
+        db_session.add(user_to_reset_password)
+        email_content = f"""Dear User, \n   As per your request, we have reset your Password.\nYour new Password is
+        {random_password}. \n\nRegards,\nSupport Team"""
+        email_service = EmailService()
+        email_service.send_email(user_email.user_email, email_content, "Password reset notification")
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f'Error in Reset Password: {e}')
+    else:
+        db_session.commit()
 
 
 @router.get("/manage/users")
