@@ -61,6 +61,7 @@ class QuestionsRecommenderUsingLLM:
             logger.info(f'LLM suggested questions: {response}')
             response = response.replace("'", '"').replace('\n', '')
             response = json.loads(response)
+            response = ["Draw chart for: " + element for element in response]
             logger.info(f'JSON formatted response : {response}')
             return response
         except Exception as e:
