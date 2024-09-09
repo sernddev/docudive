@@ -175,10 +175,8 @@ class ExcelAnalyzerTool(Tool):
             llm: LLM,
             force_run: bool = False,
     ) -> dict[str, Any] | None:
-        rephrased_query = history_based_query_rephrase(
-            query=query, history=history, llm=llm
-        )
-        return {"query": rephrased_query}
+        #rephrased_query = history_based_query_rephrase(query=query, history=history, llm=llm)
+        return {"query": query}
 
     def build_tool_message_content(
             self, *args: ToolResponse
