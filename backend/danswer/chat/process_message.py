@@ -78,6 +78,7 @@ from danswer.tools.internet_search.internet_search_tool import (
 )
 from danswer.tools.internet_search.internet_search_tool import InternetSearchResponse
 from danswer.tools.internet_search.internet_search_tool import InternetSearchTool
+from danswer.tools.infographics.data_infographics_tool import FileDataInfographicsTool
 from danswer.tools.search.search_tool import SEARCH_RESPONSE_SUMMARY_ID
 from danswer.tools.search.search_tool import SearchResponseSummary
 from danswer.tools.search.search_tool import SearchTool
@@ -507,6 +508,7 @@ def stream_chat_message_objects(
                     tool_dict[db_tool_model.id] = [search_tool]
                 elif tool_cls.__name__ == SqlGenerationTool.__name__:
                     sql_generation_tool = SqlGenerationTool(
+                        history=[PreviousMessage.from_chat_message(msg, files) for msg in history_msgs],
                         db_session=db_session,
                         user=user,
                         persona=persona,
@@ -517,6 +519,19 @@ def stream_chat_message_objects(
                         metadata =metadata
                     )
                     tool_dict[db_tool_model.id] = [sql_generation_tool]
+                elif tool_cls.__name__ == FileDataInfographicsTool.__name__:
+                    questions_recommender_tool = FileDataInfographicsTool(
+                        history=[PreviousMessage.from_chat_message(msg, files) for msg in history_msgs],
+                        db_session=db_session,
+                        user=user,
+                        persona=persona,
+                        prompt_config=prompt_config,
+                        llm_config=llm.config,
+                        llm=llm,
+                        files=latest_query_files,
+                        metadata=metadata
+                    )
+                    tool_dict[db_tool_model.id] = [questions_recommender_tool]
                 elif tool_cls.__name__ == SummaryGenerationTool.__name__:
                     summary_generation_tool = SummaryGenerationTool(
                         user=user,
@@ -524,7 +539,7 @@ def stream_chat_message_objects(
                         prompt_config=prompt_config,
                         llm_config=llm.config,
                         llm=llm,
-                        files = latest_query_files
+                        files=latest_query_files
                     )
                     tool_dict[db_tool_model.id] = [summary_generation_tool]
                 elif tool_cls.__name__ == ComposeEmailTool.__name__:
