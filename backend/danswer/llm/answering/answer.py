@@ -437,11 +437,11 @@ class Answer:
                 if response.id == EXCEL_ANALYZER_RESPONSE_ID:
                     res1 = yield response.response
                     return [DanswerAnswerPiece(answer_piece=res1)]
-        # elif tool.name == FileDataInfographicsTool._NAME:
-        #     for response in tool_runner.tool_responses():
-        #         if response.id == FILE_DATA_INFOGRAPHICS_RESPONSE_ID:
-        #             res1 = yield response.response
-        #             return [DanswerAnswerPiece(answer_piece=res1)]
+        elif tool.name == FileDataInfographicsTool._NAME:
+            for response in tool_runner.tool_responses():
+                if response.id == FILE_DATA_INFOGRAPHICS_RESPONSE_ID:
+                    res1 = yield response.response
+                    return [DanswerAnswerPiece(answer_piece=res1)]
         else:
             prompt_builder.update_user_prompt(
                 HumanMessage(
