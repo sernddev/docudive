@@ -46,13 +46,22 @@ export async function saveIconsForAssistants(assistantId: number, imageURL: stri
       return false;
     }
 }
+function isValidImageUrl(urlString: string) {
+  try {
+    const url = new URL(urlString);
+
+    return /\.(jpg|jpeg|png|gif|svg)$/i.test(url.pathname);
+  } catch (error) {
+    return false;
+  }
+}
 
 export async function getAssitantServerIcon(assistantId: number) {
   const response = await fetch(`/api/settings/image_url/${assistantId}`);
 
   if(response.ok) {
     const json = await response.json();
-    if(json.value) {
+    if(json.value && isValidImageUrl(json.value)) {
       return json.value;
     }
   }
