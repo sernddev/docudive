@@ -593,6 +593,23 @@ export async function uploadFilesForChat(
   return [responseJson.files as FileDescriptor[], null];
 }
 
+export async function getRecommnededQuestions(fileId: string, personaId: number) {
+    const questions: string[] = [];
+    const response = await fetch(`/api/chat/file/recommend/questions/${fileId}/${personaId}`)
+    if (!response.ok) {
+      return questions;
+    }
+    const responseJson = await response.json();
+    if(responseJson?.questions?.length) {
+      if(responseJson.questions.length > 4) {
+        return responseJson.questions.slice(0,4);
+      }
+      return responseJson.questions;
+    }
+
+    return questions;
+}
+
 export async function useScrollonStream({
   isStreaming,
   scrollableDivRef,

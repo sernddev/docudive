@@ -27,10 +27,13 @@ export function ToolsDisplay({ tools }: { tools: ToolSnapshot[] }) {
         } else if (tool.name === "ComposeEmailTool") {
           toolName = "Compose Email";
           toolIcon = <FiGlobe className="mr-1 my-auto" />;
+        } else if (tool.name === "FileDataInfographicsTool") {
+          toolName = "File Data Infographics";
         }else if (tool.name === "ExcelAnalyzerTool") {
           toolName = "Excel Analyzer";
           toolIcon = <FiGlobe className="mr-1 my-auto" />;
         }
+
 
         return (
           <Bubble key={tool.id} isSelected={false} notSelectable>
