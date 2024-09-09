@@ -24,7 +24,7 @@ class EmailService:
 
     def send_email(self, receiver_email, email_content):
         try:
-            subject = self.extract_subject(email_content) or "Sent From ComposeEmailTool"
+            subject = self.extract_subject(email_content) or "Email From ALYAH"
 
             # Remove the subject line from the email content
             email_content_without_subject = re.sub(SUBJECT_MATCH_PATTERN, "", email_content)
