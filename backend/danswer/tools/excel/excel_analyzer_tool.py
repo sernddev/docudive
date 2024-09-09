@@ -218,8 +218,17 @@ class ExcelAnalyzerTool(Tool):
                 response=tool_output)
 
         query = query.replace('#new#','')"""
-        if self.files:
-            dataframe = generate_dataframe_from_excel(self.files[0])
+        file = None
+        if not self.files:
+            # Fetch last file
+            previous_msgs = self.history[0]
+            if previous_msgs.files:
+                file = previous_msgs.files[0]
+        else:
+            file = self.files[0]
+
+        if file:
+            dataframe = generate_dataframe_from_excel(file)
             quer_with_schema = "dataframe schema with fields: \n" + str(
                 dataframe.dtypes) + "\n\n" + "sample data: \n" + str(dataframe.head(5)) + f"\nuser query: {query}"
             # send query to LLM to get pandas functions, out put should be valid pandas function
