@@ -60,6 +60,6 @@ class QuestionsRecommenderUsingLLM:
             logger.info(f'LLM suggested questions: {response}')
             return response
         except Exception as e:
-            logger.error("Failed to resolve graph parameters: %s", str(e))
+            logger.error(" QuestionsRecommenderUsingLLM.invoke_llm. Exception while Querying LLM: %s", str(e))
             raise LLMException(base_exception=e,
                                message="Exception while querying LLM: %s" % str(e))
