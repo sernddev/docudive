@@ -198,26 +198,6 @@ class ExcelAnalyzerTool(Tool):
 
     def run(self, **kwargs: str) -> Generator[ToolResponse, None, None]:
         query = cast(str, kwargs["query"])
-        """if "#new#" not in query:
-            prompt_builder = AnswerPromptBuilder(self.history, self.llm_config)
-            prompt_builder.update_system_prompt(
-                default_build_system_message(self.prompt_config)
-            )
-            prompt_builder.update_user_prompt(
-                default_build_user_message(
-                    user_query=query, prompt_config=self.prompt_config, files=self.files
-                )
-            )
-            prompt = prompt_builder.build()
-            tool_output = message_to_string(
-                self.llm.invoke(prompt=prompt, metadata=self.metadata)
-            )
-
-            yield ToolResponse(
-                id=EXCEL_ANALYZER_RESPONSE_ID,
-                response=tool_output)
-
-        query = query.replace('#new#','')"""
         file = None
         if not self.files:
             # Fetch last file
