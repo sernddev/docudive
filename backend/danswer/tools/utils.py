@@ -1,5 +1,7 @@
 import json
+from io import BytesIO
 
+import pandas as pd
 from tiktoken import Encoding
 
 from danswer.llm.utils import get_default_llm_tokenizer
@@ -26,3 +28,13 @@ def compute_all_tool_tokens(
     tools: list[Tool], llm_tokenizer: Encoding | None = None
 ) -> int:
     return sum(compute_tool_tokens(tool, llm_tokenizer) for tool in tools)
+
+
+def generate_dataframe_from_excel( file):
+        # file = files[0]  # first file only
+        content = file.content
+        excel_byte_stream = BytesIO(content)
+        excel_byte_stream.seek(0)
+        dataframe = pd.read_csv(excel_byte_stream)
+
+        return dataframe

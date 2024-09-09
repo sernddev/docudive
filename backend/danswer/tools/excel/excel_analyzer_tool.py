@@ -9,11 +9,13 @@ from sqlalchemy.orm import Session
 from danswer.dynamic_configs.interface import JSON_ro
 from danswer.file_store.models import InMemoryChatFile
 from danswer.llm.answering.prompts.build import AnswerPromptBuilder, default_build_system_message, \
-    default_build_user_message
+    default_build_user_message, default_build_system_message_by_prmpt, default_build_user_message_by_task_prompt
 from danswer.llm.utils import message_to_string
 from danswer.secondary_llm_flows.query_expansion import history_based_query_rephrase
+from danswer.tools.excel import excel_analyzer_bl
 from danswer.tools.tool import Tool
 from danswer.tools.tool import ToolResponse
+from danswer.tools.utils import generate_dataframe_from_excel
 from danswer.utils.logger import setup_logger
 from danswer.db.models import Persona, ChatMessage
 from danswer.db.models import User
@@ -35,6 +37,69 @@ Tabular data is {}
 
 analyze above tabular data and user query, try to identify domain data and provide title and summary in paragraphs and bullet points, DONT USE YOUR EXISTING KNOWLEDGE.
 
+"""
+
+'''
+Tested with 
+System prompt:
+### Instruction:
+You are a data science assistant. Your task is to take a user's input describing an operation on a pandas DataFrame and convert it into a valid Python DataFrame query that can be executed using eval(). The query should only use valid pandas operations like filtering, grouping, or aggregation.
+
+Ensure that:
+1. The query is well-formed and syntactically correct.
+2. The query uses safe operations compatible with pandas.
+3. The query should operate on a DataFrame named `df`.
+4. The output query must be a Python expression that can be evaluated using eval().
+5. DONT explain, write only single line python code which can be executed on dataframe using eval()
+6. if you didn't understand query or columns not matching write response as "None"
+
+Task Prompt:
+
+### Example 1:
+User input: "Group by country and calculate the average salary"
+LLM output: "df.groupby('country')['salary'].mean()"
+
+### Example 2:
+User input: "Filter rows where age is greater than 30"
+LLM output: "df[df['age'] > 30]"
+
+### Example 3:
+User input: "Group by country and calculate the mean age and salary"
+LLM output: "df.groupby('country').agg({'age': 'mean', 'salary': 'mean'})"
+
+### Example 4:
+User input: "Filter rows where sales are above 5000 and country is USA"
+LLM output: "df[(df['sales'] > 5000) & (df['country'] == 'USA')]"
+
+Model :llama 70b
+'''
+SYSTEM_PROMPT = """### Instruction:
+You are a data science assistant. Your task is to take a user's input describing an operation on a pandas DataFrame and convert it into a valid Python DataFrame query that can be executed using eval(). The query should only use valid pandas operations like filtering, grouping, or aggregation.
+
+Ensure that:
+1. The query is well-formed and syntactically correct.
+2. The query uses safe operations compatible with pandas.
+3. The query should operate on a DataFrame named `df`.
+4. The output query must be a Python expression that can be evaluated using eval().
+5. DONT explain, write only single line python code which can be executed on dataframe using eval()
+6. if you didn't understand query or columns not matching write response as "None"
+"""
+TASK_PROMPT = """
+### Example 1:
+User input: "Group by country and calculate the average salary"
+LLM output: "df.groupby('country')['salary'].mean()"
+
+### Example 2:
+User input: "Filter rows where age is greater than 30"
+LLM output: "df[df['age'] > 30]"
+
+### Example 3:
+User input: "Group by country and calculate the mean age and salary"
+LLM output: "df.groupby('country').agg({'age': 'mean', 'salary': 'mean'})"
+
+### Example 4:
+User input: "Filter rows where sales are above 5000 and country is USA"
+LLM output: "df[(df['sales'] > 5000) & (df['country'] == 'USA')]
 """
 
 
@@ -110,13 +175,8 @@ class ExcelAnalyzerTool(Tool):
             llm: LLM,
             force_run: bool = False,
     ) -> dict[str, Any] | None:
-        if not force_run:
-            return None
-
-        rephrased_query = history_based_query_rephrase(
-            query=query, history=history, llm=llm
-        )
-        return {"query": rephrased_query}
+        #rephrased_query = history_based_query_rephrase(query=query, history=history, llm=llm)
+        return {"query": query}
 
     def build_tool_message_content(
             self, *args: ToolResponse
@@ -138,24 +198,86 @@ class ExcelAnalyzerTool(Tool):
 
     def run(self, **kwargs: str) -> Generator[ToolResponse, None, None]:
         query = cast(str, kwargs["query"])
-
-        prompt_builder = AnswerPromptBuilder(self.history, self.llm_config)
-        prompt_builder.update_system_prompt(
-            default_build_system_message(self.prompt_config)
-        )
-        prompt_builder.update_user_prompt(
-            default_build_user_message(
-                user_query=query, prompt_config=self.prompt_config, files=self.files
+        """if "#new#" not in query:
+            prompt_builder = AnswerPromptBuilder(self.history, self.llm_config)
+            prompt_builder.update_system_prompt(
+                default_build_system_message(self.prompt_config)
             )
+            prompt_builder.update_user_prompt(
+                default_build_user_message(
+                    user_query=query, prompt_config=self.prompt_config, files=self.files
+                )
+            )
+            prompt = prompt_builder.build()
+            tool_output = message_to_string(
+                self.llm.invoke(prompt=prompt, metadata=self.metadata)
+            )
+
+            yield ToolResponse(
+                id=EXCEL_ANALYZER_RESPONSE_ID,
+                response=tool_output)
+
+        query = query.replace('#new#','')"""
+        if self.files:
+            dataframe = generate_dataframe_from_excel(self.files[0])
+            quer_with_schema = "dataframe schema with fields: \n" + str(
+                dataframe.dtypes) + "\n\n" + "sample data: \n" + str(dataframe.head(5)) + f"\nuser query: {query}"
+            # send query to LLM to get pandas functions, out put should be valid pandas function
+            prompt_builder = AnswerPromptBuilder(self.history, self.llm_config)
+            prompt_builder.update_system_prompt(
+                default_build_system_message_by_prmpt(SYSTEM_PROMPT)
+            )
+            prompt_builder.update_user_prompt(
+                default_build_user_message_by_task_prompt(
+                    user_query=quer_with_schema, task_prompt=TASK_PROMPT, files=[]
+                )
+            )
+            prompt = prompt_builder.build()
+            tool_output = message_to_string(
+                self.llm.invoke(prompt=prompt, metadata=self.metadata)
+            )
+
+            response = excel_analyzer_bl.eval_expres(dframe=dataframe, hint=query, exp=tool_output.strip())
+            analzye_prompt =self.generate_analyze_prompt(response= response, query=query)
+
+            tool_output = message_to_string(
+                self.llm.invoke(prompt=analzye_prompt, metadata=self.metadata)
+            )
+
+            yield ToolResponse(
+                id=EXCEL_ANALYZER_RESPONSE_ID,
+                response=tool_output
+            )
+
+    def generate_analyze_prompt(self, response, query):
+        analzye_prompt = (
+            f"Your data analyst, analyze the data from the dataframe and try to answer the user's question. "
         )
-        prompt = prompt_builder.build()
-        tool_output = message_to_string(
-            self.llm.invoke(prompt=prompt, metadata=self.metadata)
+
+        stat_info = []
+        if response.min_val is not None:
+            stat_info.append("min")
+        if response.max_val is not None:
+            stat_info.append("max")
+
+        if stat_info:
+            analzye_prompt += f"You also have {', '.join(stat_info)}, average, and other statistical information. "
+        else:
+            analzye_prompt += "You have average and other statistical information. "
+
+        analzye_prompt += (
+            "Based on the statistics, provide useful insights. Write a detailed report based on the given data. "
+            f"This is the user query: {query}. "
+            f"Here are the facts: {response.data}"
         )
-        yield ToolResponse(
-            id=EXCEL_ANALYZER_RESPONSE_ID,
-            response=tool_output
-        )
+
+        if response.min_val is not None:
+            analzye_prompt += f", min: {response.min_val}"
+
+        if response.max_val is not None:
+            analzye_prompt += f", max: {response.max_val}"
+
+        return analzye_prompt
 
     def final_result(self, *args: ToolResponse) -> JSON_ro:
         tool_generation_response = cast(

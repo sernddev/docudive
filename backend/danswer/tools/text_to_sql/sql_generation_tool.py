@@ -22,6 +22,7 @@ from danswer.tools.infographics.plot_charts import PlotCharts
 from danswer.tools.infographics.resolve_plot_parameters_using_llm import ResolvePlotParametersUsingLLM
 from danswer.tools.tool import Tool
 from danswer.tools.tool import ToolResponse
+from danswer.tools.utils import generate_dataframe_from_excel
 from danswer.utils.logger import setup_logger
 from danswer.db.models import Persona
 from danswer.db.models import User
@@ -197,7 +198,7 @@ class SqlGenerationTool(Tool):
             dataframe = None
             result_list = []
             if self.files:
-                dataframe = self.generate_dataframe_from_excel(self.files[0]) # first file only
+                dataframe = generate_dataframe_from_excel(self.files[0]) # first file only
                 if not dataframe.empty:
                     sql_generation_tool_output = self.generate_sql_for_dataframe.generate_sql_query(schema=dataframe.dtypes,
                                                                                                     requirement=query, metadata = self.metadata)
@@ -305,13 +306,7 @@ class SqlGenerationTool(Tool):
 
         return sql_query
 
-    def generate_dataframe_from_excel(self, file):
-        # file = files[0]  # first file only
-        content = file.content
-        excel_byte_stream = BytesIO(content)
-        dataframe = pd.read_csv(excel_byte_stream)
-        logger.info(f'excel loaded to dataframe : {dataframe.dtypes}')
-        return dataframe
+
 
     def resolve_parameters_and_generate_chart(self, filtered_df, sql_query, user_query) -> str:
         if not filtered_df.empty:
