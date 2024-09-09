@@ -17,7 +17,6 @@ from danswer.llm.utils import message_to_string
 from danswer.prompts.constants import GENERAL_SEP_PAT
 from danswer.tools.infographics.exceptions import DataframeInMemorySQLExecutionException, LLMException
 from danswer.tools.infographics.plot_summarize_generate_sql import PlotSummarizeGenerateSQL
-from danswer.tools.questions_recommender.recomend_questions_using_llm import QuestionsRecommenderUsingLLM
 
 from danswer.tools.tool import Tool
 from danswer.tools.tool import ToolResponse
@@ -116,7 +115,6 @@ class SqlGenerationTool(Tool):
         self.files = files
         self.metadata = metadata
         self.plot_summarize_sql = PlotSummarizeGenerateSQL(self.llm, self.llm_config, self.prompt_config)
-        self.questions_recommender = QuestionsRecommenderUsingLLM(self.llm, self.llm_config, self.prompt_config)
 
     @property
     def name(self) -> str:
