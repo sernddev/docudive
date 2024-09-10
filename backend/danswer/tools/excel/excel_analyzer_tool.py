@@ -3,6 +3,7 @@ from collections.abc import Generator
 from typing import Any
 from typing import cast
 
+import pandas as pd
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -250,15 +251,31 @@ class ExcelAnalyzerTool(Tool):
             stat_info.append("max")
 
         if stat_info:
-            analzye_prompt += f"You also have {', '.join(stat_info)}, average, and other statistical information. "
+            analzye_prompt += f"You also have {', '.join(stat_info)} are statistical information. "
         else:
             analzye_prompt += "You have average and other statistical information. "
 
-        analzye_prompt += (
-            "Based on the statistics, provide useful insights. Write a detailed report based on the given data. "
-            f"This is the user query: {query}. "
-            f"Here are the facts: {response.data}"
-        )
+        if response.data is not None and isinstance(response.data, pd.DataFrame):
+            if len(response.data) > 10:
+                analzye_prompt += (
+                    "Based on the statistics, provide useful insights. Write a detailed report based on the given data. "
+                    f"This is the user query: {query}. "
+                    "Here are the facts: \n"
+                    f"{response.data.head(5)}\n...\n{response.data.tail(5)}"
+                )
+            else:
+                analzye_prompt += (
+                    "Based on the statistics, provide useful insights. Write a detailed report based on the given data. "
+                    f"This is the user query: {query}. "
+                    "Here are the facts: \n"
+                    f"{response.data}"
+                )
+        else:
+            analzye_prompt += (
+                f"This is the user query: {query}. "
+                "No valid data was fetched. Please ask user to re-write the question, make this very short and "
+                "meaning full in separate paragraph"
+            )
 
         if response.min_val is not None:
             analzye_prompt += f", min: {response.min_val}"
