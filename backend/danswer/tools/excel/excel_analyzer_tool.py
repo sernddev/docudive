@@ -262,8 +262,8 @@ class ExcelAnalyzerTool(Tool):
 
         if stat_info:
             analzye_prompt += f"You also have {', '.join(stat_info)} are statistical information. "
-        else:
-            analzye_prompt += "You have average and other statistical information. "
+        #else:
+        #    analzye_prompt += "You have average and other statistical information. "
 
         if response.data is not None and isinstance(response.data, pd.DataFrame):
             if len(response.data) > 10:
