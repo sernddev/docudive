@@ -31,7 +31,7 @@ const IconSelector = ({ onSelect, defaultIcon }: { onSelect: Function, defaultIc
 
   return (
     <div className="mt-6">
-      <h3 className="text-lg font-semibold mb-4">Select an Icon for the Assistant</h3>
+      <h3 className="text-lg font-semibold mb-4">Select an Icon for the Plugin</h3>
       <div className="grid grid-cols-12 gap-4 mb-6">
         {icons.map((iconUrl) => (
           <img
