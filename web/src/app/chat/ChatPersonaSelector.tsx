@@ -7,7 +7,10 @@ import { checkUserIdOwnsAssistant } from "@/lib/assistants/checkOwnership";
 import { getAssistantIcon } from "@/lib/constants";
 import { useEffect, useState } from "react";
 import { getAssitantServerIcon } from "@/lib/assistants/updateAssistantPreferences";
-
+const fetchIcon = async (id: any, callback: Function)=> {
+  const iconURL = await getAssitantServerIcon(id);
+  callback(iconURL);
+}
 function PersonaItem({
   id,
   name,
@@ -24,15 +27,9 @@ function PersonaItem({
 
   const [assistantIcon, setAssistantIcon] = useState<string>("");
   useEffect(()=> {
-    const fetchIcon = async ()=> {
-      const iconURL = await getAssitantServerIcon(id);
-
-      if(iconURL) {
-        setAssistantIcon(iconURL);
-      }
-    }
-
-    fetchIcon();
+    fetchIcon(id, (icon: any)=> {
+      setAssistantIcon(icon)
+    });
   }, []);
 
   return (
@@ -94,21 +91,12 @@ export function ChatPersonaSelector({
   const currentlySelectedPersona = personas.find(
     (persona) => persona.id === selectedPersonaId
   );
-
   const [assistantIcon, setAssistantIcon] = useState<string>("");
   useEffect(()=> {
-    const fetchIcon = async ()=> {
-      if(selectedPersonaId) {
-        const iconURL = await getAssitantServerIcon(selectedPersonaId);
-
-        if(iconURL) {
-          setAssistantIcon(iconURL);
-        }
-      }
-    }
-
-    fetchIcon();
-  }, []);
+    fetchIcon(selectedPersonaId, (icon: any)=> {
+      setAssistantIcon(icon)
+    });
+  }, [selectedPersonaId]);
 
   return (
     <CustomDropdown
