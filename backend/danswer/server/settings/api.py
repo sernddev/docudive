@@ -148,7 +148,7 @@ def list_image_urls(directory_path: str):
     try:
         for root, _, files in os.walk(directory_path):
             for file in files:
-                if file.lower().endswith(('.png', '.svg', '.jpg', '.jpeg', '.gif', '.bmp')):
+                if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
                     file_path = os.path.join(root, file)
                     relative_path = os.path.relpath(file_path, directory_path)
                     image_url = IMAGE_SERVER_BASE_URL + relative_path.replace("\\", "/")
