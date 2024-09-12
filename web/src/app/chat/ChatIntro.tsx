@@ -4,9 +4,8 @@ import { Persona } from "../admin/assistants/interfaces";
 import { Divider } from "@tremor/react";
 import { FiBookmark, FiInfo } from "react-icons/fi";
 import { HoverPopup } from "@/components/HoverPopup";
-import { useEffect, useState } from "react";
 import { getAssistantIcon } from "@/lib/constants";
-import { getAssitantServerIcon } from "@/lib/assistants/updateAssistantPreferences";
+import { useIcon } from "@/lib/hooks";
 
 export function ChatIntro({
   availableSources,
@@ -16,17 +15,8 @@ export function ChatIntro({
   selectedPersona: Persona;
 }) {
   const availableSourceMetadata = getSourceMetadataForSources(availableSources);
-
-  const [assistantIcon, setAssistantIcon] = useState<string>("");
-
-  useEffect(()=> {
-    const fetchIcon = async ()=> {
-      const iconURL = await getAssitantServerIcon(selectedPersona.id);
-      setAssistantIcon(iconURL);
-    }
-
-    fetchIcon();
-  }, [selectedPersona]);
+  const { iconUrls, isLoading, isError } = useIcon();
+  const imageURL = !isLoading && !isError && iconUrls[selectedPersona.id] ? iconUrls[selectedPersona.id] : getAssistantIcon(selectedPersona.id);
 
   return (
     <>
@@ -35,7 +25,7 @@ export function ChatIntro({
           <div className="flex">
             <div className="mx-auto">
               <div className="flex justify-center">
-                <img src={assistantIcon || getAssistantIcon(selectedPersona.id)} alt={selectedPersona.name} width={80} />
+                <img src={imageURL} alt={selectedPersona.name} width={80} />
               </div>
               <div className="m-auto text-3xl font-bold text-strong mt-4 w-fit">
                 {selectedPersona?.name || "How can I help you today?"}
