@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { checkUserIdOwnsAssistant } from "@/lib/assistants/checkOwnership";
 import { getAssistantIcon } from "@/lib/constants";
-
+import { useEffect, useState } from "react";
+import { useIcon } from "@/lib/hooks";
+import { fetchAssistantIcon } from "@/lib/assistants/fetchAssitantIcons";
+const fetchIcon = async (id: any, callback: Function)=> {
+  const iconURL = await fetchAssistantIcon(id);
+  callback(iconURL);
+}
 function PersonaItem({
   id,
   name,
@@ -19,6 +25,10 @@ function PersonaItem({
   isSelected: boolean;
   isOwner: boolean;
 }) {
+
+  const { iconUrls, isLoading, isError } = useIcon();
+  const imageURL = !isLoading && !isError && iconUrls[id] ? iconUrls[id] : getAssistantIcon(id);
+
   return (
     <div className="flex w-full">
       <div
@@ -44,7 +54,7 @@ function PersonaItem({
         }}
       >
         <div className="flex">
-          <img className="mr-2" width={20} src={getAssistantIcon(id)} alt="" />
+          <img className="mr-2" width={20} src={imageURL} alt="" />
           <div className="text">{name}</div>
           {isSelected && (
             <div className="ml-auto mr-1 my-auto">
@@ -78,6 +88,12 @@ export function ChatPersonaSelector({
   const currentlySelectedPersona = personas.find(
     (persona) => persona.id === selectedPersonaId
   );
+  const { iconUrls, isLoading, isError } = useIcon();
+  const personaId = currentlySelectedPersona?.id;
+  const imageURL = ((personaId && iconUrls &&
+                      iconUrls[personaId]) &&
+                      !isLoading && !isError ) ? iconUrls[personaId]: 
+                      getAssistantIcon(personaId||null);
 
   return (
     <CustomDropdown
@@ -137,7 +153,7 @@ export function ChatPersonaSelector({
       <div className="select-none text-lg text-strong items-center font-bold flex px-2 rounded cursor-pointer hover:bg-hover-light">
         <div className="mt-auto">
           <div className="flex">
-            <img className="mr-2" src={getAssistantIcon(currentlySelectedPersona?.id||0)} width={25} alt="" />
+            <img className="mr-2" src={imageURL} width={25} alt="" />
             <div className="text items-center">
               {currentlySelectedPersona?.name || "Default"}
             </div>

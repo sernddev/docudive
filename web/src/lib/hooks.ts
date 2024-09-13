@@ -15,6 +15,7 @@ import { destructureValue } from "./llm/utils";
 import { ChatSession } from "@/app/chat/interfaces";
 import { UsersResponse } from "./users/interfaces";
 import { usePaidEnterpriseFeaturesEnabled } from "@/components/settings/usePaidEnterpriseFeaturesEnabled";
+import { fetchAssistantIcon } from "./assistants/fetchAssitantIcons";
 
 const CREDENTIAL_URL = "/api/manage/admin/credential";
 
@@ -117,6 +118,22 @@ export function useFilters(): FilterManager {
     setSelectedTags,
   };
 }
+
+// Custom SWR hook for fetching icon
+export const useIcon = (itemId?: number | null) => {
+  
+  const { data, error } = useSWR(itemId ? `/api/settings/image_url/${itemId}`: '/api/settings/image_url/', () => fetchAssistantIcon(itemId || null), {
+      revalidateOnFocus: true, // Revalidate when window regains focus
+      revalidateOnReconnect: true, // Revalidate when reconnecting after being offline
+  });
+
+  return {
+      iconUrls: data,
+      isLoading: !error && !data,
+      isError: error,
+  };
+};
+
 
 export const useUsers = () => {
   const url = "/api/manage/users";

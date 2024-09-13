@@ -1,16 +1,24 @@
 import os
-from typing import Dict, List
 
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 
+import hashlib
+from fastapi import Header, Response
+from typing import Optional
+
+from sqlalchemy.orm import Session
+from danswer.db.engine import get_session
+
 from danswer.auth.users import current_admin_user
 from danswer.auth.users import current_user
 from danswer.db.models import User
+from danswer.db.persona import get_personas
 from danswer.server.settings.models import Settings, KeyValueStoreGeneric
 
-from danswer.server.settings.store import load_settings, store_settings, store_key_value, load_key_value, delete_key_value_generic
+from danswer.server.settings.store import load_settings, store_settings, store_key_value, load_key_value, \
+    delete_key_value_generic, get_image_from_key_store
 
 from danswer.configs.app_configs import IMAGE_SERVER_PROTOCOL
 from danswer.configs.app_configs import IMAGE_SERVER_HOST
@@ -70,19 +78,59 @@ def upsert_image_url(user_info: KeyValueStoreGeneric, _: User | None = Depends(c
     kvstore = KeyValueStoreGeneric(key=key, value=user_info.value)
     store_key_value(kvstore)
 
+    # Invalidate the cache
+    get_image_from_key_store.cache_clear()
+
+    # Optionally reload the updated key into the cache
+    get_image_from_key_store(key)
+
+
+def generate_etag(content: dict[str, str]) -> str:
+    # Generate ETag by hashing the serialized content (image_dict)
+    content_str = str(sorted(content.items()))  # Sort to ensure consistent ordering
+    return hashlib.md5(content_str.encode('utf-8')).hexdigest()
+
+@basic_router.get('/image_url')
+def get_all_images(response: Response, if_none_match: Optional[str] = Header(None),
+                   _: User | None = Depends(current_user),
+                   db_session: Session = Depends(get_session),
+                   include_deleted: bool = False) -> dict[str, str] | None:
+    image_dict: dict[str, str] = {}
+    persona_ids = [
+        persona.id
+        for persona in get_personas(
+            db_session=db_session,
+            user_id=None,  # user_id = None -> give back all personas
+            include_deleted=include_deleted,
+        )
+    ]
+
+    for persona_id in persona_ids:
+        key = f"{IMAGE_URL_KEY}{persona_id}"
+        image_dict[str(persona_id)] = get_image_from_key_store(key).value
+
+    # Generated ETag based on the image_dict content
+    etag = generate_etag(image_dict)
+
+    if if_none_match == etag:
+        # if ETag matches, returns 304 Not Modified
+        response.status_code = 304
+        return
+
+    response.headers['ETag'] = etag
+
+    return image_dict
 
 @basic_router.get('/image_url/{key}')
 def get_image_url(key: str,  _: User | None = Depends(current_user)) -> KeyValueStoreGeneric:
     key = f"{IMAGE_URL_KEY}{key}"
-    return load_key_value(key)
-
+    return get_image_from_key_store(key)
 
 @basic_router.delete('/image_url/{key}')
 def delete_image_url(key: str,  _: User | None = Depends(current_user)) -> None:
     key = f"{IMAGE_URL_KEY}{key}"
     delete_key_value_generic(key)
-
-
+    get_image_from_key_store.cache_clear()
 
 @basic_router.get("/icons")
 def get_image_urls(_: User | None = Depends(current_user)) -> dict[str, list[str]]:

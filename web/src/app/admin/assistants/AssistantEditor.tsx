@@ -35,7 +35,7 @@ import { FullLLMProvider } from "../models/llm/interfaces";
 import { Option } from "@/components/Dropdown";
 import { ToolSnapshot } from "@/lib/tools/interfaces";
 import { checkUserIsNoAuthUser } from "@/lib/user";
-import { addAssistantToList, getAssitantServerIcon, saveIconsForAssistants } from "@/lib/assistants/updateAssistantPreferences";
+import { addAssistantToList, saveIconsForAssistants } from "@/lib/assistants/updateAssistantPreferences";
 import { checkLLMSupportsImageInput } from "@/lib/llm/utils";
 import { usePaidEnterpriseFeaturesEnabled } from "@/components/settings/usePaidEnterpriseFeaturesEnabled";
 import {
@@ -45,6 +45,7 @@ import {
   TooltipTrigger,
 } from "@radix-ui/react-tooltip";
 import IconSelector from "./IconSelector";
+import { fetchAssistantIcon } from "@/lib/assistants/fetchAssitantIcons";
 
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "SearchTool");
@@ -135,7 +136,7 @@ export function AssistantEditor({
         existingPersona.num_chunks === 0
       );
 
-      getAssitantServerIcon(existingPersona.id).then((iconURL: string)=> {
+      fetchAssistantIcon(existingPersona.id).then((iconURL: string)=> {
         if(iconURL) {
           setAssistantIconURL(iconURL);
         }

@@ -3,6 +3,7 @@ from collections.abc import Generator
 from typing import Any
 from typing import cast
 
+import pandas as pd
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -198,6 +199,9 @@ class ExcelAnalyzerTool(Tool):
 
     def run(self, **kwargs: str) -> Generator[ToolResponse, None, None]:
         query = cast(str, kwargs["query"])
+        if query.startswith("Draw chart for:"):
+            query = query[len("Draw chart for:"):]
+        query = query.strip()
         file = None
         if not self.files:
             # Fetch last file
@@ -209,9 +213,11 @@ class ExcelAnalyzerTool(Tool):
 
         if file:
             dataframe = generate_dataframe_from_excel(file)
-            quer_with_schema = "dataframe schema with fields: \n" + str(
-                dataframe.dtypes) + "\n\n" + "sample data: \n" + str(dataframe.head(5)) + f"\nuser query: {query}"
+            quer_with_schema = self.get_schema_with_prompt(dataframe, query)
             # send query to LLM to get pandas functions, out put should be valid pandas function
+            # we don't need to send file content to LLM, becz it is structure data loaded to dataframe
+            for f in self.history: f.files = []
+
             prompt_builder = AnswerPromptBuilder(self.history, self.llm_config)
             prompt_builder.update_system_prompt(
                 default_build_system_message_by_prmpt(SYSTEM_PROMPT)
@@ -227,7 +233,7 @@ class ExcelAnalyzerTool(Tool):
             )
 
             response = excel_analyzer_bl.eval_expres(dframe=dataframe, hint=query, exp=tool_output.strip())
-            analzye_prompt =self.generate_analyze_prompt(response= response, query=query)
+            analzye_prompt =self.generate_analyze_prompt(response= response, query=query, schema=quer_with_schema)
 
             tool_output = message_to_string(
                 self.llm.invoke(prompt=analzye_prompt, metadata=self.metadata)
@@ -238,7 +244,12 @@ class ExcelAnalyzerTool(Tool):
                 response=tool_output
             )
 
-    def generate_analyze_prompt(self, response, query):
+    def get_schema_with_prompt(self, dataframe, query):
+        quer_with_schema = "dataframe schema with fields: \n" + str(
+            dataframe.dtypes) + "\n\n" + "sample data: \n" + str(dataframe.head(5)) + f"\nuser query: {query}"
+        return quer_with_schema
+
+    def generate_analyze_prompt(self, response, query, schema):
         analzye_prompt = (
             f"Your data analyst, analyze the data from the dataframe and try to answer the user's question. "
         )
@@ -250,15 +261,36 @@ class ExcelAnalyzerTool(Tool):
             stat_info.append("max")
 
         if stat_info:
-            analzye_prompt += f"You also have {', '.join(stat_info)}, average, and other statistical information. "
-        else:
-            analzye_prompt += "You have average and other statistical information. "
+            analzye_prompt += f"You also have {', '.join(stat_info)} are statistical information. "
+        #else:
+        #    analzye_prompt += "You have average and other statistical information. "
 
-        analzye_prompt += (
-            "Based on the statistics, provide useful insights. Write a detailed report based on the given data. "
-            f"This is the user query: {query}. "
-            f"Here are the facts: {response.data}"
-        )
+        if response.data is not None and isinstance(response.data, pd.DataFrame):
+            if len(response.data) > 10:
+                analzye_prompt += (
+                    "Based on the statistics, provide useful insights. Write a detailed report based on the given data. "
+                    f"This is the user query: {query}. "
+                    "Here are the facts: \n"
+                    f"{response.data.head(5)}\n...\n{response.data.tail(5)}"
+                )
+            else:
+                analzye_prompt += (
+                    "Based on the statistics, provide useful insights. Write a detailed report based on the given data. "
+                    f"This is the user query: {query}. "
+                    "Here are the facts: \n"
+                    f"{response.data}"
+                )
+        else:
+            analzye_prompt += (
+                f"This is the user query: {query}. "
+                "No valid data was fetched. Please ask user to re-write the question, make this very short and "
+                "meaning full in separate paragraph"
+                f"suggest 3 very simple text question based on the  schema like with where clause or group by, "
+                f"but dont generate any source code,  just generate questions  based on this schema:{schema}, "
+                f"and ask user to try, dont mention to used these are simple test question. mention these questions "
+                f"are suggestions"
+            )
+            logger.info("NO_DATA_FOUND_PROMPT_"+analzye_prompt)
 
         if response.min_val is not None:
             analzye_prompt += f", min: {response.min_val}"
