@@ -520,7 +520,7 @@ def stream_chat_message_objects(
                     )
                     tool_dict[db_tool_model.id] = [sql_generation_tool]
                 elif tool_cls.__name__ == FileDataInfographicsTool.__name__:
-                    questions_recommender_tool = FileDataInfographicsTool(
+                    file_infographics_tool = FileDataInfographicsTool(
                         history=[PreviousMessage.from_chat_message(msg, files) for msg in history_msgs],
                         db_session=db_session,
                         user=user,
@@ -531,7 +531,7 @@ def stream_chat_message_objects(
                         files=latest_query_files,
                         metadata=metadata
                     )
-                    tool_dict[db_tool_model.id] = [questions_recommender_tool]
+                    tool_dict[db_tool_model.id] = [file_infographics_tool]
                 elif tool_cls.__name__ == SummaryGenerationTool.__name__:
                     summary_generation_tool = SummaryGenerationTool(
                         user=user,

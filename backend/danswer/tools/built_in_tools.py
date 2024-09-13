@@ -79,14 +79,14 @@ BUILT_IN_TOOLS: list[InCodeToolInfo] = [
         in_code_tool_id=ExcelAnalyzerTool.__name__,
         display_name= ExcelAnalyzerTool._DISPLAY_NAME,
     ),
-    # InCodeToolInfo(
-    #     cls=FileDataInfographicsTool,
-    #     description=(
-    #         "The File Data Infographics tool allows the plugins to suggest questions based on attached file content."
-    #     ),
-    #     in_code_tool_id=FileDataInfographicsTool.__name__,
-    #     display_name=FileDataInfographicsTool._DISPLAY_NAME,
-    # ),
+    InCodeToolInfo(
+        cls=FileDataInfographicsTool,
+        description=(
+            "The File Data Infographics tool allows the plugins to suggest questions based on attached file content."
+        ),
+        in_code_tool_id=FileDataInfographicsTool.__name__,
+        display_name=FileDataInfographicsTool._DISPLAY_NAME,
+    ),
     # don't show the InternetSearchTool as an option if BING_API_KEY is not available
     *(
         [
