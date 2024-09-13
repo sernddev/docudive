@@ -19,44 +19,7 @@ class PromptConfig:
     template: str
 
 
-def construct_prompt(sql_query, schema, requirement, chart_type) -> str:
-    """ Construct the detailed prompt for querying the LLM. """
-    resolve_x_and_y_context = f"""
-                    Given the SQL query results, database schema, and user requirements, please identify the appropriate fields for creating a visualization using Plotly. Ensure that the output directly matches the SQL query structure, considering all selected fields.
-
-                    **SQL Query:**
-                    {sql_query}
-
-                    **Database Schema:**
-                    {schema}
-
-                    **Chart Type:**
-                    {chart_type}
-
-                    **User Requirements:**                        
-                    The user aims to visualize data related to SQL query and {requirement} requiring a comprehensive representation of all fields used in the SQL query for aggregations, computations, or groupings.
-
-                    **Expected Fields from SQL Query:**
-                    - Ensure that the number of fields suggested corresponds exactly to the number of columns returned by the SQL query.
-                    - The fields should be listed in the order they appear in the SQL query results and presented in a dictionary format appropriate to the chart type.
-
-                    **Guidelines for Suggesting Fields:**
-                    - For a PIE chart, suggest fields for 'x' and 'y' and return dictionary like {{"x": "", "y": ""}}.
-                    - For BAR and HEATMAP charts, suggest fields for 'x' and 'y' and return dictionary like {{"x": "", "y": ""}}.
-                    - For a SCATTER chart, suggest fields for 'x', 'y', and 'color' and return dictionary like {{"x": "", "y": "", "color": ""}}.
-                    - For a SCATTER_MATRIX chart, suggest fields for 'x', 'y', 'color', and 'size' and return dictionary like {{"x": "", "y": "", "color": "", "size": ""}}.
-                    - Analyze columns properly to suggest the right match for each parameter for ex. for SCATTER_MATRIX which column fits best for color and which for size or x, y
-                    - Do not include any explanations or additional text.
-
-                    All suggestions must align with the type of visualization to effectively convey the intended insights and reflect the data structure accurately.
-                """
-
-    question = f"Based on the SQL Query and user requirements, what are the appropriate field names for plotting a {chart_type}? Please format your response as a dictionary mapping field names to the roles they play in the visualization."
-    prompt = f""" context: {resolve_x_and_y_context}, question: {question} """
-    return prompt
-
-
-def construct_prompt_1(sql_query, schema, requirement, chart_type):
+def construct_prompt(sql_query, schema, requirement, chart_type):
     resolve_x_and_y_context = f"""**SQL Query Results and Schema Context:**
         Given the SQL query results and database schema, identify the appropriate fields for creating a visualization using Plotly. The output should directly match the SQL query structure, considering all selected fields.
 
@@ -133,7 +96,7 @@ class ResolvePlotParametersUsingLLM:
     def resolve_graph_parameters(self, sql_query, schema, requirement,
                                  chart_type, metadata=None) -> list:
         """ Resolve graph parameters by querying the LLM with constructed prompts. """
-        prompt = construct_prompt_1(sql_query, format_dataframe_schema(schema), requirement, chart_type)
+        prompt = construct_prompt(sql_query, format_dataframe_schema(schema), requirement, chart_type)
         try:
             llm_response = self.llm.invoke(prompt=prompt, metadata=metadata)
             field_names = llm_response.content

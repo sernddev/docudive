@@ -14,6 +14,7 @@ import os
 
 logger = setup_logger()
 IMAGE_DIR = "images"
+IMAGE_EXTENSION = '.jpg'
 
 
 def format_image_url(file_name, image_title="title image") -> str:
@@ -27,22 +28,14 @@ def generate_chart_and_save(dataframe, field_names, chart_type) -> str:
     try:
         figure = PlotFactory.create_chart(chart_type, dataframe, field_names)
         if figure is not None:
-            file_name = str(uuid.uuid4()) + '.jpg'
-            # image_path = os.path.join(os.getcwd(), 'images', file_name)
-            image_path = os.path.join('/images', file_name)
+            file_name = str(uuid.uuid4()) + IMAGE_EXTENSION
+            image_path = os.path.join('/' + IMAGE_DIR, file_name)
             figure.write_image(image_path)
             logger.info(f'Plotly figure saved to {image_path}')
             return format_image_url(file_name=file_name)
     except Exception as e:
         logger.error(f'Failed to generate chart: {e}')
     return 'No chart generated'
-
-
-def create_dataframe(json_data):
-    df = pd.DataFrame(json_data)
-    logger.info(f'DataFrame created with columns: {df.columns.tolist()}')
-    logger.info(f'DataFrame : {df}')
-    return df
 
 
 def find_chart_type(df) -> str:

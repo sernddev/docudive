@@ -1,23 +1,14 @@
 from danswer.tools.infographics.dataframe_inmemory_sql import DataframeInMemorySQL
 from danswer.tools.infographics.exceptions import DataframeInMemorySQLExecutionException
 from danswer.tools.infographics.generate_sql_for_dataframe import GenerateSqlForDataframe
-from danswer.tools.infographics.plot_charts import PlotCharts
 from danswer.tools.infographics.resolve_plot_parameters_using_llm import ResolvePlotParametersUsingLLM, LLMException
 from danswer.tools.infographics.plot_charts import generate_chart_and_save, find_chart_type
 from danswer.tools.infographics.resolve_plot_type_parameters_generate_execute_code_using_llm import \
     ResolvePlotTypeAndParametersAndGenerateExecuteCodeUsingLLM
+from danswer.tools.utils import load_to_dataframe
 from danswer.utils.logger import setup_logger
-from io import BytesIO
-import pandas as pd
 
 logger = setup_logger()
-
-
-def load_to_dataframe(content):
-    excel_byte_stream = BytesIO(content)
-    dataframe = pd.read_csv(excel_byte_stream)
-    logger.info(f'file loaded to the dataframe : \n{dataframe.dtypes}\n')
-    return dataframe
 
 
 class PlotSummarizeGenerateSQL:
@@ -28,7 +19,6 @@ class PlotSummarizeGenerateSQL:
         self.llm_config = llm_config
         self.prompt_config = prompt_config
         self.allowed_attempt = 3
-        self.plot_charts = PlotCharts()
         self.resolve_plot_parameters = ResolvePlotParametersUsingLLM(llm=llm,
                                                                      llm_config=llm_config,
                                                                      prompt_config=prompt_config)
@@ -38,13 +28,6 @@ class PlotSummarizeGenerateSQL:
         self.generate_chart = ResolvePlotTypeAndParametersAndGenerateExecuteCodeUsingLLM(llm=llm,
                                                                                          llm_config=llm_config,
                                                                                          prompt_config=prompt_config)
-
-    # def resolve_params_and_plot_or_regenerate_sql(self, dataframe, filtered_df, query,
-    #                                               sql_generation_tool_output):
-    #     response = self.resolve_parameters_and_generate_chart(filtered_df=filtered_df,
-    #                                                           sql_query=sql_generation_tool_output,
-    #                                                           user_query=query)
-    #     return response
 
     def generate_execute_sql_dataframe(self, file, query, metadata) -> tuple:
         dataframe = load_to_dataframe(file.content)
@@ -68,9 +51,9 @@ class PlotSummarizeGenerateSQL:
                     filtered_df = self.execute_sql_on_dataframe(df=dataframe, sql_query=sql_query)
                     logger.info(
                         f'\n******************* filtered_df received *******************: \n{filtered_df.info}\n************************************************************')
-                    # if filtered_df is None or filtered_df.empty:
-                    #     # Try again
-                    #     raise DataframeInMemorySQLExecutionException(ValueError("Dataframe null or empty"), "Dataframe null or empty")
+                    if filtered_df is None or filtered_df.empty:
+                        raise DataframeInMemorySQLExecutionException(ValueError("ResultSet after executing SQL query is of size 0."),
+                                                                     "SQL query resulted in no data.")
                     break
                 except (DataframeInMemorySQLExecutionException, LLMException) as e:
                     logger.error(f'Exception received while executing generate_execute_self_correct_sql: {str(e)}')
@@ -78,7 +61,6 @@ class PlotSummarizeGenerateSQL:
                     previous_sqls.append(sql_query)
                     previous_errors.append(previous_response)
                     current_attempt += 1
-                    # sql_query = None
                     filtered_df = None
                     if current_attempt > self.allowed_attempt:
                         raise e
@@ -93,11 +75,8 @@ class PlotSummarizeGenerateSQL:
                                                                                         dataframe=filtered_df)
             except LLMException as e:
                 logger.error(f'Exception while resolve_parameters_and_generate_chart: {str(e)}')
-                # raise e
                 return f'Exception while resolve_parameters_and_generate_chart: {str(e)}'
         else:
-            # raise DataframeInMemorySQLExecutionException(base_exception=ValueError("Dataframe is empty"),
-            #                                              message=f". Failed To resolve parameters and generate chart. Dataframe is empty.")
             return 'Failed To resolve parameters and generate chart. Dataframe is empty.'
 
     def resolve_parameters_and_generate_chart(self, filtered_df, sql_query, user_requirement, metadata=None) -> str:
@@ -117,11 +96,8 @@ class PlotSummarizeGenerateSQL:
                 return image_url
             except LLMException as e:
                 logger.error(f'Exception while resolve_parameters_and_generate_chart: {str(e)}')
-                # raise e
                 return f'Exception while resolve_parameters_and_generate_chart: {str(e)}'
         else:
-            # raise DataframeInMemorySQLExecutionException(base_exception=ValueError("Dataframe is empty"),
-            #                                              message=f". Failed To resolve parameters and generate chart. Dataframe is empty.")
             return 'Failed To resolve parameters and generate chart. Dataframe is empty.'
 
     def execute_sql_on_dataframe(self, df, sql_query):

@@ -6,9 +6,11 @@ from tiktoken import Encoding
 
 from danswer.llm.utils import get_default_llm_tokenizer
 from danswer.tools.tool import Tool
-
+from danswer.utils.logger import setup_logger
 
 OPEN_AI_TOOL_CALLING_MODELS = {"gpt-3.5-turbo", "gpt-4-turbo", "gpt-4"}
+
+logger = setup_logger()
 
 
 def explicit_tool_calling_supported(model_provider: str, model_name: str) -> bool:
@@ -38,3 +40,25 @@ def generate_dataframe_from_excel( file):
         dataframe = pd.read_csv(excel_byte_stream)
 
         return dataframe
+
+
+def get_current_or_previous_files(files, history):
+    fs = None
+    if not files:
+        logger.info('Searching for previous files in the history.')
+        for previous_msg in history:
+            if previous_msg.files:
+                fs = previous_msg.files
+                logger.info(f'Previous files found in the history: {fs}.')
+                break
+    else:
+        logger.info(f'Current files found: {files}')
+        fs = files
+    return fs
+
+
+def load_to_dataframe(content):
+    excel_byte_stream = BytesIO(content)
+    dataframe = pd.read_csv(excel_byte_stream)
+    logger.info(f'Content loaded to the dataframe : \n{dataframe.dtypes}\n')
+    return dataframe

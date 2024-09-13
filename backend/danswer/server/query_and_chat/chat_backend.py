@@ -67,7 +67,7 @@ from danswer.server.query_and_chat.models import SearchFeedbackRequest
 from danswer.server.query_and_chat.models import UpdateChatSessionThreadRequest
 from danswer.server.query_and_chat.token_limit import check_token_rate_limits
 from danswer.tools.email.send_email import EmailService
-from danswer.tools.infographics.plot_summarize_generate_sql import load_to_dataframe
+from danswer.tools.utils import load_to_dataframe
 from danswer.tools.questions_recommender.recomend_questions_using_llm import QuestionsRecommenderUsingLLM
 from danswer.utils.logger import setup_logger
 

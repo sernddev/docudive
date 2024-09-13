@@ -186,12 +186,11 @@ class SqlGenerationTool(Tool):
             history = self.history
             previous_files = None
             filtered_df = None
-            dataframe = None
-            final_response = None
             result_list = []
             if not self.files:
                 # Fetch last file
-                previous_msgs = history[0]
+                previous_msgs = history[0] if history is not None else []
+                logger.info(f'No current or previous files found as history is {history}')
                 for previous_msg in previous_msgs:
                     if previous_msg.files:
                         previous_files = previous_msg.files
@@ -200,9 +199,9 @@ class SqlGenerationTool(Tool):
             if self.files or previous_files:
                 file = self.files[0] if len(self.files) > 0 else previous_files[0] if len(previous_files) > 0 else None
                 if file:
-                    dataframe, filtered_df, sql_generation_tool_output = self.plot_summarize_sql.generate_execute_sql_dataframe(file,
-                                                                                                                                query,
-                                                                                                                                metadata=self.metadata)  # first file only
+                    _, filtered_df, sql_generation_tool_output = self.plot_summarize_sql.generate_execute_sql_dataframe(file,
+                                                                                                                        query,
+                                                                                                                        metadata=self.metadata)  # first file only
                 if filtered_df is not None and not filtered_df.empty:
                     result_list = filtered_df.to_dict('records')
             else:
@@ -275,8 +274,6 @@ class SqlGenerationTool(Tool):
                 final_response = "Exception received while querying LLM."
             else:
                 final_response = 'Exception while serving the request. Try reforming the query.'
-
-
 
         yield ToolResponse(
             id=SQL_GENERATION_RESPONSE_ID,
