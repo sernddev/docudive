@@ -25,6 +25,19 @@ from danswer.llm.interfaces import LLMConfig, LLM
 
 logger = setup_logger()
 
+detailed_keywords = [
+    "detailed report", "in-depth analysis", "comprehensive", "full report", "elaborate",  # English
+    "تقرير مفصل", "تحليل متعمق", "شامل", "تقرير كامل", "موسع"  # Arabic
+]
+
+concise_keywords = [
+    "concise summary", "brief", "summary", "short report", "quick overview",  # English
+    "ملخص موجز", "موجز", "ملخص", "تقرير قصير", "نظرة سريعة"  # Arabic
+]
+
+
+
+
 EXCEL_ANALYZER_RESPONSE_ID = "excel_analyzer_response"
 
 EXCEL_ANALYZER_TOOL_DESCRIPTION = """
@@ -245,9 +258,30 @@ class ExcelAnalyzerTool(Tool):
             )
 
     def get_schema_with_prompt(self, dataframe, query):
-        quer_with_schema = "dataframe schema with fields: \n" + str(
-            dataframe.dtypes) + "\n\n" + "sample data: \n" + str(dataframe.head(5)) + f"\nuser query: {query}"
+        with pd.option_context('display.max_columns', None):
+            quer_with_schema = (
+                    "dataframe schema with fields: \n"
+                    + str(dataframe.dtypes)
+                    + "\n\n"
+                    + "sample data: \n"
+                    + str(dataframe.head(5))
+                    + f"\nuser query: {query}"
+            )
+
         return quer_with_schema
+
+    def identify_report_type(self, query):
+        '''
+        this can be replaced with LLM cal to identify request type
+        :param query:
+        :return:
+        '''
+        if any(keyword in query for keyword in detailed_keywords):
+            return "detailed"
+        elif any(keyword in query for keyword in concise_keywords):
+            return "concise"
+        else:
+            return "concise"
 
     def generate_analyze_prompt(self, response, query, schema):
         analzye_prompt = (
@@ -265,21 +299,26 @@ class ExcelAnalyzerTool(Tool):
         #else:
         #    analzye_prompt += "You have average and other statistical information. "
 
-        if response.data is not None and isinstance(response.data, pd.DataFrame):
-            if len(response.data) > 10:
-                analzye_prompt += (
-                    "Based on the statistics, provide useful insights. Write a detailed report based on the given data. "
-                    f"This is the user query: {query}. "
-                    "Here are the facts: \n"
-                    f"{response.data.head(5)}\n...\n{response.data.tail(5)}"
-                )
-            else:
-                analzye_prompt += (
-                    "Based on the statistics, provide useful insights. Write a detailed report based on the given data. "
-                    f"This is the user query: {query}. "
-                    "Here are the facts: \n"
-                    f"{response.data}"
-                )
+        if response.data is not None:
+            temp_data = response.data
+            if isinstance(response.data, pd.DataFrame):
+                temp_data = response.data if len(
+                    response.data) <= 10 else f"{response.data.head(5)}\n...\n{response.data.tail(5)}"
+
+            report_text = (
+                "Based on the given statistical data, provide useful insights. Write a detailed report based on the "
+                "given data." if "detailed" in self.identify_report_type(query)
+                else "Based on the given statistical data, provide a concise summary on the given data. Don't explain "
+                     "much."
+            )
+
+            analzye_prompt += (
+                f"{report_text} "
+                f"This is the user query: {query}. "
+                "Here are the facts: \n"
+                f"{temp_data}"
+            )
+
         else:
             analzye_prompt += (
                 f"This is the user query: {query}. "
@@ -290,7 +329,8 @@ class ExcelAnalyzerTool(Tool):
                 f"and ask user to try, dont mention to used these are simple test question. mention these questions "
                 f"are suggestions"
             )
-            logger.info("NO_DATA_FOUND_PROMPT_"+analzye_prompt)
+
+        logger.info(analzye_prompt)
 
         if response.min_val is not None:
             analzye_prompt += f", min: {response.min_val}"
