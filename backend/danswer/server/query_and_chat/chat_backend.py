@@ -67,7 +67,7 @@ from danswer.server.query_and_chat.models import SearchFeedbackRequest
 from danswer.server.query_and_chat.models import UpdateChatSessionThreadRequest
 from danswer.server.query_and_chat.token_limit import check_token_rate_limits
 from danswer.tools.email.send_email import EmailService
-from danswer.tools.infographics.plot_summarize_generate_sql import load_to_dataframe
+from danswer.tools.utils import load_to_dataframe
 from danswer.tools.questions_recommender.recomend_questions_using_llm import QuestionsRecommenderUsingLLM
 from danswer.utils.logger import setup_logger
 
@@ -608,21 +608,17 @@ def fetch_chat_file(
 
 
 @router.get("/file/recommend/questions/{file_id}/{persona_id}")
-def recommend_questions(
-        file_id: str,
-        persona_id: int,
-        db_session: Session = Depends(get_session),
-        user: User | None = Depends(current_user)
-) -> dict[str, Any]:
+def recommend_questions(file_id: str,
+                        persona_id: int,
+                        db_session: Session = Depends(get_session),
+                        user: User | None = Depends(current_user)) -> dict[str, Any]:
     error = None
     questions = None
     try:
-        persona = get_persona_by_id(
-            persona_id=persona_id,
-            user=user,
-            db_session=db_session,
-            is_for_edit=False,
-        )
+        persona = get_persona_by_id(persona_id=persona_id,
+                                    user=user,
+                                    db_session=db_session,
+                                    is_for_edit=False)
         llm, fast_llm = get_llms_for_persona(persona=persona,
                                              llm_override=None,
                                              additional_headers=None)
@@ -634,6 +630,6 @@ def recommend_questions(
         questions = questions_recommender.recommend(dataframe)
     except (GenAIDisabledException, Exception) as e:
         logger.error(f'Exception received while executing recommend_questions: {str(e)}')
-        error = str(e)
+        error = 'Exception received while executing recommend_questions.'
 
     return {"questions": questions, "error": error}

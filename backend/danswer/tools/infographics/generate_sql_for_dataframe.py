@@ -70,17 +70,10 @@ class GenerateSqlForDataframe:
     def construct_prompt_from_requirements(self, schema, requirement, table_name='df'):
         """ Construct the detailed prompt for querying the LLM. """
         schema = format_dataframe_schema(schema)
-        generate_sql = (f"{self.prompt_config.system_prompt} \n** DataFrame Schema: **\n {schema} \n "
+        generate_sql = (f"{self.prompt_config.system_prompt} \n"
+                        f"** DataFrame Schema: **\n {schema} \n "
                         f"** User Requirements: **\n {requirement} \n "
-                        # f"{self.prompt_config.task_prompt}"
-                        "- Use standard SQL syntax, suitable for execution in any SQL-compliant database."
-                        "- The SQL query must meet the user's specified requirement exactly."
-                        "- Column names used in the SQL query should match those in the DataFrame schema exactly, without any modification unless an alias is necessary for derived or aggregate columns."
-                        "- Always reference the table as 'df' in your query."
-                        "- Implement case-insensitive comparisons for all string values to handle variations in data casing using SQL functions like LOWER()."
-                        "- Restrict the use of aliases to situations where a column does not exist directly in the table (e.g., aggregated results, calculated fields) and ensure these aliases are descriptive and meaningful."                        
-                        "- Do not include any explanations or additional text."
-                        "- Output just the SQL query.")
+                        f"{self.prompt_config.task_prompt}")
         question = f"Generate SQL Query based on the provided DataFrame schema and user requirements."
         df_prompt = f""" context: {generate_sql}, question: {question} """
         return df_prompt
@@ -112,13 +105,6 @@ class GenerateSqlForDataframe:
             f"** DataFrame Schema: **\n{schema}\n"
             f"** User Requirements: **\n{requirement}\n"
             f"{self.prompt_config.task_prompt}"
-            # "- Use SQL syntax compatible with SQLite.\n"
-            # "- Ensure the query accurately meets the user's specified requirement.\n"
-            # "- Match column names exactly as provided in the DataFrame schema.\n"
-            # "- Always use the table name 'df' in your query.\n"
-            # "- Use SQLite functions correctly (e.g., use 'date('now')' instead of 'CURRENT_DATE').\n"
-            # "- Do not include any non-SQL text or symbols in the query output.\n"
-            # f"\n - Ensure the new SQL query corrects errors from previous attempts and adheres to the correct syntax. "
         )
 
         question = "Generate a correct and error-free SQL Query for SQLite, correcting the errors from previous attempts based on the provided schema and requirements."

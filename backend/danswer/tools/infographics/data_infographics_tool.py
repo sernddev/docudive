@@ -6,19 +6,18 @@ from typing import cast
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from danswer.db.models import Persona
+from danswer.db.models import User
 from danswer.dynamic_configs.interface import JSON_ro
 from danswer.file_store.models import InMemoryChatFile
-from danswer.llm.answering.prompts.build import AnswerPromptBuilder, default_build_system_message, \
-    default_build_user_message
-from danswer.llm.utils import message_to_string
-from danswer.secondary_llm_flows.query_expansion import history_based_query_rephrase
-from danswer.tools.tool import Tool
-from danswer.tools.tool import ToolResponse
-from danswer.utils.logger import setup_logger
-from danswer.db.models import Persona, ChatMessage
-from danswer.db.models import User
 from danswer.llm.answering.models import PromptConfig, PreviousMessage
 from danswer.llm.interfaces import LLMConfig, LLM
+from danswer.tools.infographics.exceptions import DataframeInMemorySQLExecutionException, LLMException
+from danswer.tools.infographics.plot_summarize_generate_sql import PlotSummarizeGenerateSQL
+from danswer.tools.tool import Tool
+from danswer.tools.tool import ToolResponse
+from danswer.tools.utils import get_current_or_previous_files
+from danswer.utils.logger import setup_logger
 
 logger = setup_logger()
 
@@ -28,13 +27,13 @@ FILE_DATA_INFOGRAPHICS_TOOL_DESCRIPTION = """
 Runs query on LLM to suggest insightful graph and summary from the attached file.
 """
 
-# SUMMARIZATION_PROMPT_FOR_TABULAR_DATA = """Your Knowledge expert acting as data analyst, your responsible for generating short summary in 100 words based on give tabular data.
-# Give tabular data is out of this query {}
-# Tabular data is {}
-#
-# analyze above tabular data and user query, try to identify domain data and provide title and summary in paragraphs and bullet points, DONT USE YOUR EXISTING KNOWLEDGE.
-#
-# """
+SUMMARIZATION_PROMPT_FOR_TABULAR_DATA = """Your Knowledge expert acting as data analyst, your responsible for generating short summary in 100 words based on give tabular data.
+Give tabular data is out of this query {}
+Tabular data is {}
+
+analyze above tabular data and user query, try to identify domain data and provide title and summary in paragraphs and bullet points, DONT USE YOUR EXISTING KNOWLEDGE.
+
+"""
 
 
 class FileDataInfoGraphicsResponse(BaseModel):
@@ -67,7 +66,8 @@ class FileDataInfographicsTool(Tool):
         self.llm_config = llm_config
         self.llm = llm
         self.files = files
-        self.metadata = metadata
+        self.metadata = metadata,
+        self.plot_summarize_sql = PlotSummarizeGenerateSQL(self.llm, self.llm_config, self.prompt_config)
 
     @property
     def name(self) -> str:
@@ -94,7 +94,7 @@ class FileDataInfographicsTool(Tool):
                     "properties": {
                         "prompt": {
                             "type": "string",
-                            "description": "Prompt used to analyze the excel table data",
+                            "description": "Prompt used to generate infographics for the file data",
                         },
                     },
                     "required": ["prompt"],
@@ -106,15 +106,9 @@ class FileDataInfographicsTool(Tool):
                                           query: str,
                                           history: list[PreviousMessage],
                                           llm: LLM,
-                                          force_run: bool = False,
-    ) -> dict[str, Any] | None:
-        if not force_run:
-            return None
-
-        rephrased_query = history_based_query_rephrase(
-            query=query, history=history, llm=llm
-        )
-        return {"query": rephrased_query}
+                                          force_run: bool = False) -> dict[str, Any] | None:
+        # rephrased_query = history_based_query_rephrase(query=query, history=history, llm=llm)
+        return {"query": query}
 
     def build_tool_message_content(
             self, *args: ToolResponse
@@ -136,24 +130,52 @@ class FileDataInfographicsTool(Tool):
 
     def run(self, **kwargs: str) -> Generator[ToolResponse, None, None]:
         query = cast(str, kwargs["query"])
+        try:
+            files = get_current_or_previous_files(self.files, self.history)
+            file = files[0] if files else None
+            if file:
+                _, filtered_df, sql_generation_tool_output = self.plot_summarize_sql.generate_execute_sql_dataframe(file,
+                                                                                                                    query,
+                                                                                                                    metadata=self.metadata)
+                image_path = self.plot_summarize_sql.resolve_parameters_and_generate_chart(sql_query=sql_generation_tool_output,
+                                                                                           filtered_df=filtered_df,
+                                                                                           user_requirement=query,
+                                                                                           metadata=self.metadata)
+                logger.info(f'sql_generation_tool:: image_path: {image_path}, filtered_df: {filtered_df}')
+                if filtered_df is not None and not filtered_df.empty:
+                    list_records = filtered_df.to_dict('records')
+                    tabular_data_summarization = self.tabular_data_summarizer(query, list_records)
+                else:
+                    logger.info(f'filtered_df returned from plot_summarize_or_regenerate_sql is empty: {filtered_df}')
+                    tabular_data_summarization = 'No data to summarize.'
+                tool_output = tabular_data_summarization + "\n" + image_path
+            else:
+                tool_output = 'No file found to perform infographics analysis. Please upload a file.'
+        except Exception as e:
+            logger.exception(f'Exception: {str(e)}')
+            if isinstance(e, DataframeInMemorySQLExecutionException):
+                tool_output = "Exception received while Executing SQL. No data found."
+            if isinstance(e, LLMException):
+                tool_output = "Exception received while querying LLM."
+            else:
+                tool_output = 'Exception while serving the request. Try reforming the query and or uploading another file.'
 
-        prompt_builder = AnswerPromptBuilder(self.history, self.llm_config)
-        prompt_builder.update_system_prompt(
-            default_build_system_message(self.prompt_config)
-        )
-        prompt_builder.update_user_prompt(
-            default_build_user_message(
-                user_query=query, prompt_config=self.prompt_config, files=self.files
-            )
-        )
-        prompt = prompt_builder.build()
-        tool_output = message_to_string(
-            self.llm.invoke(prompt=prompt, metadata=self.metadata)
-        )
         yield ToolResponse(
             id=FILE_DATA_INFOGRAPHICS_RESPONSE_ID,
             response=tool_output
         )
+
+
+    def tabular_data_summarizer(self, user_query, tabular_data: list):
+
+        #formatted_table = "\n".join(["\t".join(row) for row in tabular_data])
+        #SUMMARIZATION_PROMPT_FOR_TABULAR_DATA.format(user_query, formatted_table)
+        logger.info(SUMMARIZATION_PROMPT_FOR_TABULAR_DATA)
+
+        llm_response = self.llm.invoke(prompt=SUMMARIZATION_PROMPT_FOR_TABULAR_DATA.format(user_query, tabular_data), metadata=self.metadata)
+        sql_query = llm_response.content
+
+        return sql_query
 
     def final_result(self, *args: ToolResponse) -> JSON_ro:
         tool_generation_response = cast(
