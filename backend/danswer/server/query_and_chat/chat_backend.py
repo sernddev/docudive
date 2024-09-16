@@ -608,21 +608,17 @@ def fetch_chat_file(
 
 
 @router.get("/file/recommend/questions/{file_id}/{persona_id}")
-def recommend_questions(
-        file_id: str,
-        persona_id: int,
-        db_session: Session = Depends(get_session),
-        user: User | None = Depends(current_user)
-) -> dict[str, Any]:
+def recommend_questions(file_id: str,
+                        persona_id: int,
+                        db_session: Session = Depends(get_session),
+                        user: User | None = Depends(current_user)) -> dict[str, Any]:
     error = None
     questions = None
     try:
-        persona = get_persona_by_id(
-            persona_id=persona_id,
-            user=user,
-            db_session=db_session,
-            is_for_edit=False,
-        )
+        persona = get_persona_by_id(persona_id=persona_id,
+                                    user=user,
+                                    db_session=db_session,
+                                    is_for_edit=False)
         llm, fast_llm = get_llms_for_persona(persona=persona,
                                              llm_override=None,
                                              additional_headers=None)
