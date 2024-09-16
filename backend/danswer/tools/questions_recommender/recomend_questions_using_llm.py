@@ -20,8 +20,6 @@ def construct_prompt(dataframe):
                      5. Strictly output the questions in the format: ['Question1?', 'Question2?', ...], where each question is a string enclosed in single quotes, starting with a capital letter and ending with a question mark.
                      6. Output only the list of questions without any additional text, headings, or explanations."""
 
-    # question = "Generate a list of questions based on the DataFrame schema and sample data. Each question should be formatted as a string within a list, following the specific guidelines provided."
-    # prompt = f"""context: {context}, question: {question}"""
     question = "Based on the DataFrame schema and sample data provided above, what are some insightful questions a data analyst can explore? Format your response as a list of strings, each string being a distinct question."
     prompt = f"""context: {context}, question: {question}"""
     logger.info(f'Prompt constructed: {prompt}')
