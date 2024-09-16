@@ -26,6 +26,7 @@ import {
   getCitedDocumentsFromMessage,
   getHumanAndAIMessageFromMessageNumber,
   getLastSuccessfulMessageId,
+  getRecommnededQuestions,
   handleChatFeedback,
   nameChatSession,
   PacketType,
@@ -277,6 +278,8 @@ export function ChatPage({
       innerSidebarElementRef.current.style.width = `${newWidth}px`;
     }
   };
+
+  const [questions, setQuestions] = useState<string[]>([]);
 
   const [message, setMessage] = useState(
     searchParams.get(SEARCH_PARAM_NAMES.USER_MESSAGE) || ""
@@ -713,6 +716,7 @@ export function ChatPage({
     if (messageOverride) {
       currMessage = messageOverride;
     }
+    setQuestions([]); // restting questions after set the current messages
     const currMessageHistory =
       messageToResendIndex !== null
         ? messageHistory.slice(0, messageToResendIndex)
@@ -1003,6 +1007,7 @@ export function ChatPage({
     if (persona && persona.id !== livePersona.id) {
       // remove uploaded files
       setCurrentMessageFiles([]);
+      setQuestions([]);
       setSelectedPersona(persona);
       textAreaRef.current?.focus();
       router.push(buildChatUrl(searchParams, null, persona.id));
@@ -1054,6 +1059,14 @@ export function ChatPage({
         });
       } else {
         setCurrentMessageFiles((prev) => [...removeTempFiles(prev), ...files]);
+        let assistantId:any = searchParams.get("assistantId");
+        assistantId = assistantId && parseInt(assistantId);
+        const personaId = selectedAssistant?.id || existingChatSessionPersonaId || assistantId;
+        if(files.length && personaId) {
+          getRecommnededQuestions(files[0].id, personaId).then((response: string[])=> {
+            setQuestions(response);
+          })
+        }
       }
     });
   };
@@ -1521,6 +1534,41 @@ export function ChatPage({
                             </div>
                           )}
 
+                          {!!questions.length && (
+                            <div
+                              className={`
+                                mx-auto 
+                                px-4 
+                                w-searchbar-xs 
+                                2xl:w-searchbar-sm 
+                                3xl:w-searchbar 
+                                grid 
+                                gap-4 
+                                grid-cols-1 
+                                grid-rows-1 
+                                mt-4 
+                                md:grid-cols-2 
+                                mb-6`}
+                              >
+                                  {questions.map((question:string, i: number)=> {
+                                      return (
+                                        <div className="w-full" key={i}>
+                                            <StarterMessage
+                                              starterMessage={question}
+                                              onClick={() => {
+                                                  onSubmit({
+                                                    messageOverride:question
+                                                  });
+                                                  setQuestions([])
+                                                }
+                                              }
+                                          />
+                                        </div>
+                                      )
+                                  })}
+                            </div>
+                          )}  
+
                         {/* Some padding at the bottom so the search bar has space at the bottom to not cover the last message*/}
                         <div ref={endPaddingRef} className=" h-[95px]" />
                         <div ref={endDivRef}></div>
@@ -1563,10 +1611,11 @@ export function ChatPage({
                               )}
                             </div>
                           )}
+                          
                         <div ref={endDivRef} />
                       </div>
                     </div>
-
+                    
                     <div
                       ref={inputRef}
                       className="absolute bottom-0 z-10 w-full"

@@ -1,10 +1,14 @@
+import logging
 from typing import cast
 
 from danswer.dynamic_configs.factory import get_dynamic_config_store
 from danswer.dynamic_configs.interface import ConfigNotFoundError
 from danswer.server.settings.models import Settings, KeyValueStoreGeneric
+from danswer.utils.logger import setup_logger
+from functools import lru_cache
 
 _SETTINGS_KEY = "danswer_settings"
+logger = setup_logger()
 
 
 def load_settings() -> Settings:
@@ -25,11 +29,14 @@ def load_key_value(key) -> KeyValueStoreGeneric:
     dynamic_config_store = get_dynamic_config_store()
     try:
         kvstore = KeyValueStoreGeneric(**cast(dict, dynamic_config_store.load(key)))
-    except ConfigNotFoundError:
-        kvstore = KeyValueStoreGeneric()
-        dynamic_config_store.store(key, kvstore.dict())
+    except ConfigNotFoundError as ex:
+        logger.error(f"Error occurred during load_key_value for key : {key} Exception : {ex}")
+        kvstore = KeyValueStoreGeneric(key=key, value="'Your Name' not provided")
     return kvstore
 
+@lru_cache(maxsize=50)
+def get_image_from_key_store(key) -> KeyValueStoreGeneric:
+    return load_key_value(key)
 
 def store_key_value(kvstore: KeyValueStoreGeneric) -> None:
     get_dynamic_config_store().store(kvstore.key, kvstore.dict())

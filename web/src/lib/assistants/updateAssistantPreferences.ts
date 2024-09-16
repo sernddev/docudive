@@ -31,6 +31,21 @@ export async function addAssistantToList(
   return false;
 }
 
+export async function saveIconsForAssistants(assistantId: number, imageURL: string) {
+    const body = {"key":assistantId , "value": imageURL};  
+    const requestOptions = {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }  
+    const response = await fetch('/api/settings/image_url', requestOptions);
+
+    if(response.ok) {
+      return await response.json();
+    } else {
+      return false;
+    }
+}
 export async function moveAssistantUp(
   assistantId: number,
   chosenAssistants: number[]

@@ -34,15 +34,15 @@ class InCodeToolInfo(TypedDict):
 BUILT_IN_TOOLS: list[InCodeToolInfo] = [
     InCodeToolInfo(
         cls=SearchTool,
-        description="The Search Tool allows the Assistant to search through connected knowledge to help build an answer.",
+        description="The Search Tool allows the plugin to search through connected knowledge to help build an answer.",
         in_code_tool_id=SearchTool.__name__,
         display_name=SearchTool._DISPLAY_NAME,
     ),
     # InCodeToolInfo(
     #     cls=ImageGenerationTool,
     #     description=(
-    #         "The Image Generation Tool allows the assistant to use DALL-E 3 to generate images. "
-    #         "The tool will be used when the user asks the assistant to generate an image."
+    #         "The Image Generation Tool allows the plugin to use DALL-E 3 to generate images. "
+    #         "The tool will be used when the user asks the plugin to generate an image."
     #     ),
     #     in_code_tool_id=ImageGenerationTool.__name__,
     #     display_name=ImageGenerationTool._DISPLAY_NAME,
@@ -50,7 +50,7 @@ BUILT_IN_TOOLS: list[InCodeToolInfo] = [
     InCodeToolInfo(
         cls=SqlGenerationTool,
         description=(
-            "The SQL Generation Tool allows the assistant to use user prompt to generate sql "
+            "The SQL Generation Tool allows the plugin to use user prompt to generate sql "
         ),
         in_code_tool_id=SqlGenerationTool.__name__,
         display_name= SqlGenerationTool._DISPLAY_NAME,
@@ -58,7 +58,7 @@ BUILT_IN_TOOLS: list[InCodeToolInfo] = [
     InCodeToolInfo(
         cls=SummaryGenerationTool,
         description=(
-            "The Summary Generation Tool allows the assistant to use user prompt to generate summary for given text."
+            "The Summary Generation Tool allows the plugin to use user prompt to generate summary for given text."
         ),
         in_code_tool_id=SummaryGenerationTool.__name__,
         display_name=SummaryGenerationTool._DISPLAY_NAME,
@@ -66,7 +66,7 @@ BUILT_IN_TOOLS: list[InCodeToolInfo] = [
     InCodeToolInfo(
         cls=ComposeEmailTool,
         description=(
-            "The Compose Email Tool allows the assistant to use user prompt to compose email for given text."
+            "The Compose Email Tool allows the plugin to use user prompt to compose email for given text."
         ),
         in_code_tool_id=ComposeEmailTool.__name__,
         display_name=ComposeEmailTool._DISPLAY_NAME,
@@ -74,7 +74,7 @@ BUILT_IN_TOOLS: list[InCodeToolInfo] = [
     InCodeToolInfo(
         cls=ExcelAnalyzerTool,
         description=(
-            "The Excel Analyzer Tool allows the assistant to use user prompt to analyze the excel data."
+            "The Excel Analyzer Tool allows the plugin to use user prompt to analyze the excel data."
         ),
         in_code_tool_id=ExcelAnalyzerTool.__name__,
         display_name= ExcelAnalyzerTool._DISPLAY_NAME,
@@ -93,7 +93,7 @@ BUILT_IN_TOOLS: list[InCodeToolInfo] = [
             InCodeToolInfo(
                 cls=InternetSearchTool,
                 description=(
-                    "The Internet Search Tool allows the assistant "
+                    "The Internet Search Tool allows the plugin "
                     "to perform internet searches for up-to-date information."
                 ),
                 in_code_tool_id=InternetSearchTool.__name__,

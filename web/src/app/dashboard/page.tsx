@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { UserDropdown } from "@/components/UserDropdown";
 import {
+    FetchAssistantIconsResponse,
+    fetchAssistantIconsSS,
     FetchAssistantsResponse,
     fetchAssistantsSS,
 } from "@/lib/assistants/fetchAssistantsSS";
@@ -17,13 +19,15 @@ export default async function Dashboard() {
     const tasks = [
         getAuthTypeMetadataSS(),
         getCurrentUserSS(),
-        fetchAssistantsSS()
+        fetchAssistantsSS(),
+        fetchAssistantIconsSS()
     ];
 
     let results: (
         | User
         | FetchAssistantsResponse
         | AuthTypeMetadata
+        | FetchAssistantIconsResponse
         | null
     )[] = [null, null, null];
     try {
@@ -35,6 +39,7 @@ export default async function Dashboard() {
     const authTypeMetadata = results[0] as AuthTypeMetadata | null;
     const user = results[1] as User | null;
     const [initialAssistantsList, assistantsFetchError] = results[2] as FetchAssistantsResponse;
+    const assistantIcons = results[3] as FetchAssistantIconsResponse;
     
     const authDisabled = authTypeMetadata?.authType === "disabled";
     if (!authDisabled && !user) {
@@ -56,7 +61,7 @@ export default async function Dashboard() {
                             <p className="text-lg text-gray-600">Please select the plugin you would like to use</p>
                         </div>
                         
-                        <AssistantList assistants={initialAssistantsList} />
+                        <AssistantList assistants={initialAssistantsList} icons={assistantIcons} />
                     </div>
 
                 </div>

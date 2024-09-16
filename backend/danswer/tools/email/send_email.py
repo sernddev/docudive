@@ -22,6 +22,7 @@ class EmailService:
     def __init__(self):
         self.logger.info('Initializing SendEmail class')
 
+
     def send_email(self, receiver_email, email_content, email_subject=None):
 
         try:

@@ -7,7 +7,7 @@ personas:
   - id: 0
     name: "Spectra"
     description: >
-      Assistant with access to documents from your Connected Sources.
+      Plugin with access to documents from your Connected Sources.
     # Default Prompt objects attached to the persona, see prompts.yaml
     prompts:
       - "Answer-Question"
@@ -42,7 +42,7 @@ personas:
   - id: 1
     name: "GPT"
     description: >
-      Assistant with no access to documents. Chat with just the Language Model.
+      Plugin with no access to documents. Chat with just the Language Model.
     prompts:
       - "OnlyLLM"
     num_chunks: 0
@@ -55,7 +55,7 @@ personas:
   - id: 2
     name: "Paraphrase"
     description: >
-      Assistant that is heavily constrained and only provides exact quotes from Connected Sources.
+      Plugin that is heavily constrained and only provides exact quotes from Connected Sources.
     prompts:
       - "Paraphrase"
     num_chunks: 10

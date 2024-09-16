@@ -1,31 +1,11 @@
 import { getSourceMetadataForSources, listSourceMetadata } from "@/lib/sources";
 import { ValidSources } from "@/lib/types";
-import Image from "next/image";
 import { Persona } from "../admin/assistants/interfaces";
 import { Divider } from "@tremor/react";
-import { FiBookmark, FiCpu, FiInfo, FiX, FiZoomIn } from "react-icons/fi";
+import { FiBookmark, FiInfo } from "react-icons/fi";
 import { HoverPopup } from "@/components/HoverPopup";
-import { Modal } from "@/components/Modal";
-import { useState } from "react";
-import { Logo } from "@/components/Logo";
 import { getAssistantIcon } from "@/lib/constants";
-
-const MAX_PERSONAS_TO_DISPLAY = 4;
-
-function HelperItemDisplay({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="cursor-pointer hover:bg-hover-light border border-border rounded py-2 px-4">
-      <div className="text-emphasis font-bold text-lg flex">{title}</div>
-      <div className="text-sm">{description}</div>
-    </div>
-  );
-}
+import { useIcon } from "@/lib/hooks";
 
 export function ChatIntro({
   availableSources,
@@ -35,8 +15,8 @@ export function ChatIntro({
   selectedPersona: Persona;
 }) {
   const availableSourceMetadata = getSourceMetadataForSources(availableSources);
-
-  const [displaySources, setDisplaySources] = useState(false);
+  const { iconUrls, isLoading, isError } = useIcon();
+  const imageURL = !isLoading && !isError && iconUrls[selectedPersona.id] ? iconUrls[selectedPersona.id] : getAssistantIcon(selectedPersona.id);
 
   return (
     <>
@@ -45,7 +25,7 @@ export function ChatIntro({
           <div className="flex">
             <div className="mx-auto">
               <div className="flex justify-center">
-                <img src={getAssistantIcon(selectedPersona.id)} alt={selectedPersona.name} width={80} />
+                <img src={imageURL} alt={selectedPersona.name} width={80} />
               </div>
               <div className="m-auto text-3xl font-bold text-strong mt-4 w-fit">
                 {selectedPersona?.name || "How can I help you today?"}

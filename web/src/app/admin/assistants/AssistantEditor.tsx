@@ -35,7 +35,7 @@ import { FullLLMProvider } from "../models/llm/interfaces";
 import { Option } from "@/components/Dropdown";
 import { ToolSnapshot } from "@/lib/tools/interfaces";
 import { checkUserIsNoAuthUser } from "@/lib/user";
-import { addAssistantToList } from "@/lib/assistants/updateAssistantPreferences";
+import { addAssistantToList, saveIconsForAssistants } from "@/lib/assistants/updateAssistantPreferences";
 import { checkLLMSupportsImageInput } from "@/lib/llm/utils";
 import { usePaidEnterpriseFeaturesEnabled } from "@/components/settings/usePaidEnterpriseFeaturesEnabled";
 import {
@@ -44,6 +44,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@radix-ui/react-tooltip";
+import IconSelector from "./IconSelector";
+import { fetchAssistantIcon } from "@/lib/assistants/fetchAssitantIcons";
 
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "SearchTool");
@@ -106,6 +108,7 @@ export function AssistantEditor({
 
   const [finalPrompt, setFinalPrompt] = useState<string | null>("");
   const [finalPromptError, setFinalPromptError] = useState<string>("");
+  const [assistantIconURL, setAssistantIconURL] = useState<string>("")
 
   const triggerFinalPromptUpdate = async (
     systemPrompt: string,
@@ -132,6 +135,12 @@ export function AssistantEditor({
         existingPrompt.task_prompt,
         existingPersona.num_chunks === 0
       );
+
+      fetchAssistantIcon(existingPersona.id).then((iconURL: string)=> {
+        if(iconURL) {
+          setAssistantIconURL(iconURL);
+        }
+      })
     }
   }, []);
 
@@ -368,6 +377,7 @@ export function AssistantEditor({
               groups,
               tool_ids: enabledTools,
             });
+            saveIconsForAssistants(existingPersona.id, assistantIconURL );
           } else {
             [promptResponse, personaResponse] = await createPersona({
               ...values,
@@ -411,6 +421,7 @@ export function AssistantEditor({
                   message: `"${assistant.name}" has been added to your list.`,
                   type: "success",
                 });
+                saveIconsForAssistants(assistantId, assistantIconURL );
                 router.refresh();
               } else {
                 setPopup({
@@ -966,6 +977,11 @@ export function AssistantEditor({
                         </div>
                       )}
                     />
+                  </div>
+                  <div className="mb-6">
+                    <IconSelector defaultIcon={assistantIconURL} onSelect={(selectedIcon: string)=> {
+                      setAssistantIconURL(selectedIcon);
+                    }} />
                   </div>
 
                   {isPaidEnterpriseFeaturesEnabled &&
