@@ -630,6 +630,6 @@ def recommend_questions(file_id: str,
         questions = questions_recommender.recommend(dataframe)
     except (GenAIDisabledException, Exception) as e:
         logger.error(f'Exception received while executing recommend_questions: {str(e)}')
-        error = str(e)
+        error = 'Exception received while executing recommend_questions.'
 
     return {"questions": questions, "error": error}
