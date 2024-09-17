@@ -6,8 +6,8 @@ export async function fetchAssistantIcon(assistantId?:number | null) {
 
         if(response.ok) {
             const json = await response.json();
-            if(json.value && isValidImageUrl(json.value)) {
-            return json.value;
+            if(json && isValidImageUrl(json)) {
+                return json;
             }
         } 
         return "";

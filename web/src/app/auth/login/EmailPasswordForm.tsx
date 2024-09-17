@@ -54,7 +54,9 @@ export function EmailPasswordForm({
                 type: "error",
                 message: `Failed to sign up - ${errorMsg}`,
               });
-              window.location.href = window.location.href;
+              setTimeout(() => {
+                window.location.reload();
+              }, 2000);
               return;
             }
           }
