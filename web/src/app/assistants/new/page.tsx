@@ -42,7 +42,7 @@ export default async function Page() {
           <div className="flex my-auto">
             <LargeBackButton />
             <h1 className="flex text-xl text-strong font-bold my-auto">
-              New Assistant
+              New Plugin
             </h1>
           </div>
         </div>
