@@ -210,6 +210,25 @@ class ExcelAnalyzerTool(Tool):
             }
         )
 
+    def load_and_convert_dates(self, df):
+        if df is None or df.empty:
+            print("DataFrame is None or empty.")
+            return df
+
+        for col in df.columns:
+            if df[col].dtype == 'object':
+                try:
+                    # Try converting the column to datetime
+                    converted_col = pd.to_datetime(df[col], errors='coerce')
+
+                    if converted_col.notna().sum() > 0.5 * len(df):
+                        df[col] = converted_col  # Keep the datetime conversion
+                    else:
+                        df[col] = df[col]  # Revert back to the original column
+                except Exception as e:
+                    print(f"Error converting column {col} to datetime: {e}")
+
+        return df
     def run(self, **kwargs: str) -> Generator[ToolResponse, None, None]:
         query = cast(str, kwargs["query"])
         if query.startswith("Draw chart for:"):
@@ -226,6 +245,7 @@ class ExcelAnalyzerTool(Tool):
 
         if file:
             dataframe = generate_dataframe_from_excel(file)
+            dataframe = self.load_and_convert_dates(dataframe)
             quer_with_schema = self.get_schema_with_prompt(dataframe, query)
             # send query to LLM to get pandas functions, out put should be valid pandas function
             # we don't need to send file content to LLM, becz it is structure data loaded to dataframe
@@ -246,6 +266,7 @@ class ExcelAnalyzerTool(Tool):
             )
 
             response = excel_analyzer_bl.eval_expres(dframe=dataframe, hint=query, exp=tool_output.strip())
+            self.log_response_data(response)
             analzye_prompt =self.generate_analyze_prompt(response= response, query=query, schema=quer_with_schema)
 
             tool_output = message_to_string(
@@ -256,6 +277,21 @@ class ExcelAnalyzerTool(Tool):
                 id=EXCEL_ANALYZER_RESPONSE_ID,
                 response=tool_output
             )
+    def log_response_data(self, response):
+        data = response.data
+
+        if isinstance(data, pd.DataFrame):
+            # Temporarily set Pandas to display all columns
+            pd.set_option('display.max_columns', None)
+
+            # Log the DataFrame details, ensuring all columns are visible
+            logger.info(f"eval response with {len(data)} rows and {len(data.columns)} columns:\n{data}")
+
+            # Optionally reset the display settings to avoid affecting other code
+            pd.reset_option('display.max_columns')
+        else:
+            # Log the response data directly for non-DataFrame types
+            logger.info(f"eval response data: {data}")
 
     def get_schema_with_prompt(self, dataframe, query):
         with pd.option_context('display.max_columns', None):
@@ -338,6 +374,8 @@ class ExcelAnalyzerTool(Tool):
         if response.max_val is not None:
             analzye_prompt += f", max: {response.max_val}"
 
+        analzye_prompt = analzye_prompt +("\n\n DON'T MENTION THAT YOUR USING DATAFRAME, WHEN EVER REQUIRED SAY BASED "
+                                          "ON GIVEN DATA OR DATASET")
         return analzye_prompt
 
     def final_result(self, *args: ToolResponse) -> JSON_ro:
