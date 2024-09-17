@@ -125,13 +125,6 @@ export function UserDropdown({
                       <FiMessageSquare className="my-auto mr-2 text-lg" />
                       Spectra Chat
                     </Link>
-                    <Link
-                      href="/assistants/mine"
-                      className="flex py-3 px-4 rounded cursor-pointer hover:bg-hover-light"
-                    >
-                      <FaBrain className="my-auto mr-2 text-lg" />
-                      My Plugins
-                    </Link>
                   </>
                 )}
               </>

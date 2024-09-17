@@ -140,7 +140,7 @@ export function ChatPersonaSelector({
               name={
                 <div className="flex items-center">
                   <FiPlusSquare className="mr-2" />
-                  New Assistant
+                  New Plugin
                 </div>
               }
               onSelect={() => router.push("/assistants/new")}
