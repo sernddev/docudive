@@ -82,7 +82,7 @@ BUILT_IN_TOOLS: list[InCodeToolInfo] = [
     InCodeToolInfo(
         cls=FileDataInfographicsTool,
         description=(
-            "The File Data Infographics tool allows the plugins to suggest questions based on attached file content."
+            "The File Data Infographics tool analyses the file data and responds with summary along with chart."
         ),
         in_code_tool_id=FileDataInfographicsTool.__name__,
         display_name=FileDataInfographicsTool._DISPLAY_NAME,
