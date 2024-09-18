@@ -40,3 +40,13 @@ export interface Persona {
   users: MinimalUserSnapshot[];
   groups: number[];
 }
+
+export interface PluginInfo{
+  image_url?: string;
+  plugin_tags?: string[];
+  supports_file_upload?: boolean;
+  supports_temperature_dialog?: boolean;
+  custom_message_water_mark?: string;
+  is_recommendation_supported?: boolean;
+  is_favorite?:boolean;
+}
