@@ -1,3 +1,5 @@
+import { PluginInfo } from "@/app/admin/assistants/interfaces";
+
 async function updateUserAssistantList(
   chosenAssistants: number[]
 ): Promise<boolean> {
@@ -31,14 +33,14 @@ export async function addAssistantToList(
   return false;
 }
 
-export async function saveIconsForAssistants(assistantId: number, imageURL: string) {
-    const body = {"key":assistantId , "value": imageURL};  
-    const requestOptions = {
+export async function saveAssistantInfo(assistantId: number, pluginInfo: PluginInfo) {
+    
+  const requestOptions = {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(pluginInfo)
     }  
-    const response = await fetch('/api/settings/image_url', requestOptions);
+    const response = await fetch(`/api/settings/plugin_info/${assistantId}`, requestOptions);
 
     if(response.ok) {
       return await response.json();

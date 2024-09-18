@@ -15,7 +15,7 @@ import * as Yup from "yup";
 import { buildFinalPrompt, createPersona, updatePersona } from "./lib";
 import { useRouter } from "next/navigation";
 import { usePopup } from "@/components/admin/connectors/Popup";
-import { Persona, StarterMessage } from "./interfaces";
+import { Persona, StarterMessage, PluginInfo } from "./interfaces";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
@@ -35,7 +35,7 @@ import { FullLLMProvider } from "../models/llm/interfaces";
 import { Option } from "@/components/Dropdown";
 import { ToolSnapshot } from "@/lib/tools/interfaces";
 import { checkUserIsNoAuthUser } from "@/lib/user";
-import { addAssistantToList, saveIconsForAssistants } from "@/lib/assistants/updateAssistantPreferences";
+import { addAssistantToList, saveAssistantInfo } from "@/lib/assistants/updateAssistantPreferences";
 import { checkLLMSupportsImageInput } from "@/lib/llm/utils";
 import { usePaidEnterpriseFeaturesEnabled } from "@/components/settings/usePaidEnterpriseFeaturesEnabled";
 import {
@@ -45,7 +45,7 @@ import {
   TooltipTrigger,
 } from "@radix-ui/react-tooltip";
 import IconSelector from "./IconSelector";
-import { fetchAssistantIcon } from "@/lib/assistants/fetchAssitantIcons";
+import { fetchAssistantInfo } from "@/lib/assistants/fetchAssistantInfo"
 
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "SearchTool");
@@ -108,7 +108,14 @@ export function AssistantEditor({
 
   const [finalPrompt, setFinalPrompt] = useState<string | null>("");
   const [finalPromptError, setFinalPromptError] = useState<string>("");
-  const [assistantIconURL, setAssistantIconURL] = useState<string>("")
+  const [assistantInfo, setAssistantInfo] = useState<PluginInfo>({
+    image_url: "",
+    plugin_tags: [],
+    supports_file_upload: false,
+    supports_temperature_dialog: false,
+    custom_message_water_mark: "Send a message",    
+    is_recommendation_supported: false,
+    is_favorite: false})
 
   const triggerFinalPromptUpdate = async (
     systemPrompt: string,
@@ -136,9 +143,9 @@ export function AssistantEditor({
         existingPersona.num_chunks === 0
       );
 
-      fetchAssistantIcon(existingPersona.id).then((iconURL: string)=> {
-        if(iconURL) {
-          setAssistantIconURL(iconURL);
+      fetchAssistantInfo(existingPersona.id).then((pluginInfo: PluginInfo)=> {
+        if(pluginInfo) {
+          setAssistantInfo(pluginInfo);
         }
       })
     }
@@ -377,7 +384,6 @@ export function AssistantEditor({
               groups,
               tool_ids: enabledTools,
             });
-            saveIconsForAssistants(existingPersona.id, assistantIconURL );
           } else {
             [promptResponse, personaResponse] = await createPersona({
               ...values,
@@ -408,6 +414,9 @@ export function AssistantEditor({
           } else {
             const assistant = await personaResponse.json();
             const assistantId = assistant.id;
+            
+            saveAssistantInfo(assistantId, assistantInfo);
+
             if (
               shouldAddAssistantToUserPreferences &&
               user?.preferences?.chosen_assistants
@@ -421,7 +430,7 @@ export function AssistantEditor({
                   message: `"${assistant.name}" has been added to your list.`,
                   type: "success",
                 });
-                saveIconsForAssistants(assistantId, assistantIconURL );
+                
                 router.refresh();
               } else {
                 setPopup({
@@ -474,7 +483,7 @@ export function AssistantEditor({
                   name="system_prompt"
                   label="System Prompt"
                   isTextArea={true}
-                  placeholder="e.g. 'You are a professional email writing assistant that always uses a polite enthusiastic tone, emphasizes action items, and leaves blanks for the human to fill in when you have unknowns'"
+                  placeholder="e.g. 'You are a professional email writing plugin that always uses a polite enthusiastic tone, emphasizes action items, and leaves blanks for the human to fill in when you have unknowns'"
                   //
                   onChange={(e) => {
                     setFieldValue("system_prompt", e.target.value);
@@ -979,8 +988,10 @@ export function AssistantEditor({
                     />
                   </div>
                   <div className="mb-6">
-                    <IconSelector defaultIcon={assistantIconURL} onSelect={(selectedIcon: string)=> {
-                      setAssistantIconURL(selectedIcon);
+                    <IconSelector defaultIcon={assistantInfo.image_url} onSelect={(selectedIcon: string)=> {
+                      setAssistantInfo((prevState: PluginInfo)=> {
+                        return {...prevState, "image_url": selectedIcon}
+                      });
                     }} />
                   </div>
 

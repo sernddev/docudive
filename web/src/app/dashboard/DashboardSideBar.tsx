@@ -23,15 +23,6 @@ export default function DashboardSideBar() {
                 <SideBarHeader />
             </div>
             {/* Navigation Links */}
-            <nav className="w-full px-3 mt-2">
-                <Link href="/assistants/mine">
-                    <BasicClickable fullWidth>
-                        <div className="flex items-center text-default font-medium">
-                            <FaBrain className="ml-1 mr-2" /> Manage Plugins
-                        </div>
-                    </BasicClickable>
-                </Link>
-            </nav>
         </div>
     )
 }

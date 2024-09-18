@@ -1,5 +1,5 @@
 from enum import Enum
-
+from typing import List
 from pydantic import BaseModel
 
 
@@ -8,9 +8,21 @@ class PageType(str, Enum):
     SEARCH = "search"
 
 
+# This model used to store and retrieve plugin information from DB
 class KeyValueStoreGeneric(BaseModel):
     key: str
     value: str
+
+
+# This model used to store and retrieve plugin information from DB
+class PluginInfoStore(BaseModel):
+    image_url: str | None = None
+    plugin_tags: List[str] | None = None
+    supports_file_upload: bool = True
+    supports_temperature_dialog: bool = True
+    custom_message_water_mark: str = "Send a message"
+    is_recommendation_supported: bool = False
+    is_favorite: bool = False
 
 
 class Settings(BaseModel):
