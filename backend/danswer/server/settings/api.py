@@ -19,7 +19,7 @@ from danswer.auth.users import current_admin_user
 from danswer.auth.users import current_user
 from danswer.db.models import User
 from danswer.db.persona import get_personas
-from danswer.server.settings.models import Settings, KeyValueStoreGeneric, PluginInfoStore, PluginInfo
+from danswer.server.settings.models import Settings, KeyValueStoreGeneric, PluginInfoStore
 
 from danswer.server.settings.store import load_settings, store_settings, store_key_value, load_key_value, \
     delete_key_value_generic, get_image_from_key_store, load_plugin_info, store_plugin_info
@@ -87,37 +87,21 @@ def delete_user_info(key: str, _: User | None = Depends(current_user)) -> None:
     logger.info(f"key : {key} is deleted from Key_Value_Store")
 
 
-@basic_router.put("/plugin_info")
-def upsert_plugin_info(info: PluginInfo, _: User | None = Depends(current_user)) -> None:
-    key = f"{PLUGIN_INFO_KEY}{info.key}"
-    plugin_info = load_plugin_info(key)
-    if plugin_info is None:
-        # If the key is not present in the key_value_store
-        logger.info(f"Inserting plugin_info for key : {key}")
-        if info.prop == PluginInfoEnum.IMAGE_URL.name:
-            plugin_info = PluginInfoStore(image_url=info.value[0])
-        elif info.prop == PluginInfoEnum.PLUGIN_TAGS.name:
-            plugin_info = PluginInfoStore(plugin_tags=info.value)
-    else:
-        # If the key is present in the key_value_store, then we need to update the existing entry.
-        logger.info(f"Updating plugin_info for key : {key}")
-        if info.prop == PluginInfoEnum.IMAGE_URL.name:
-            plugin_info.image_url = None if info.value is None or 0 == len(info.value) else info.value[0]
-        elif info.prop == PluginInfoEnum.PLUGIN_TAGS.name:
-            plugin_info.plugin_tags = info.value
-
-    store_plugin_info(key, plugin_info)
+@basic_router.put("/plugin_info/{plugin_id}")
+def upsert_plugin_info(plugin_id: str,  info: PluginInfoStore, _: User | None = Depends(current_user)) -> None:
+    key = f"{PLUGIN_INFO_KEY}{plugin_id}"
+    store_plugin_info(key, info)
 
 
-@basic_router.get('/plugin_info/{key}')
-def get_plugin_info(key: str, _: User | None = Depends(current_user)) -> PluginInfoStore | None:
-    key = f"{PLUGIN_INFO_KEY}{key}"
+@basic_router.get('/plugin_info/{plugin_id}')
+def get_plugin_info(plugin_id: str, _: User | None = Depends(current_user)) -> PluginInfoStore | None:
+    key = f"{PLUGIN_INFO_KEY}{plugin_id}"
     return load_plugin_info(key)
 
 
-@basic_router.delete('/plugin_info/{key}')
-def delete_plugin_info(key: str, _: User | None = Depends(current_user)) -> None:
-    key = f"{PLUGIN_INFO_KEY}{key}"
+@basic_router.delete('/plugin_info/{plugin_id}')
+def delete_plugin_info(plugin_id: str, _: User | None = Depends(current_user)) -> None:
+    key = f"{PLUGIN_INFO_KEY}{plugin_id}"
     delete_key_value_generic(key)
 
 
@@ -125,8 +109,9 @@ def delete_plugin_info(key: str, _: User | None = Depends(current_user)) -> None
 def upsert_image_url(user_info: KeyValueStoreGeneric, _: User | None = Depends(current_user)) -> None:
     key = f"{PLUGIN_INFO_KEY }{user_info.key}"
     logger.info(f"Inserting plugin_info with image_url for key : {key}")
-    plugin_info = PluginInfo(key=user_info.key, prop=PluginInfoEnum.IMAGE_URL.name, value=[user_info.value])
-    upsert_plugin_info(plugin_info)
+    plugin_info = load_plugin_info(key)
+    plugin_info.image_url = user_info.value
+    upsert_plugin_info(user_info.key, plugin_info)
     # Invalidate the cache
     get_image_from_key_store.cache_clear()
     # Optionally reload the updated key into the cache
@@ -181,8 +166,9 @@ def get_image_url(key: str, _: User | None = Depends(current_user)) -> str | Non
 @basic_router.delete('/image_url/{key}')
 def delete_image_url(key: str,  _: User | None = Depends(current_user)) -> None:
     key = f"{PLUGIN_INFO_KEY}{key}"
-    plugin_info = PluginInfo(key=key, prop=PluginInfoEnum.IMAGE_URL.name, value=[])
-    upsert_plugin_info(plugin_info)
+    plugin_info = load_plugin_info(key)
+    plugin_info.image_url = ""
+    upsert_plugin_info(key, plugin_info)
     get_image_from_key_store.cache_clear()
 
 

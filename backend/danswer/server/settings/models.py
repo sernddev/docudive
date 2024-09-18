@@ -18,12 +18,11 @@ class KeyValueStoreGeneric(BaseModel):
 class PluginInfoStore(BaseModel):
     image_url: str | None = None
     plugin_tags: List[str] | None = None
-
-
-class PluginInfo(BaseModel):
-    key: str
-    prop: str
-    value: List[str]
+    supports_file_upload: bool = True
+    supports_temperature_dialog: bool = True
+    custom_message_water_mark: str = "Send a message"
+    is_recommendation_supported: bool = False
+    is_favorite: bool = False
 
 
 class Settings(BaseModel):
