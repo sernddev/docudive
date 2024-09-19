@@ -1,6 +1,4 @@
 import React, {
-  Dispatch,
-  SetStateAction,
   useEffect,
   useRef,
   useState,
@@ -15,18 +13,17 @@ import {
   FiInfo,
 } from "react-icons/fi";
 import ChatInputOption from "./ChatInputOption";
-import { FaBrain } from "react-icons/fa";
-import { Persona } from "@/app/admin/assistants/interfaces";
+import { Persona, PluginInfo } from "@/app/admin/assistants/interfaces";
 import { FilterManager, LlmOverrideManager } from "@/lib/hooks";
 import { SelectedFilterDisplay } from "./SelectedFilterDisplay";
 import { useChatContext } from "@/components/context/ChatContext";
 import { getFinalLLM } from "@/lib/llm/utils";
 import { FileDescriptor } from "../interfaces";
 import { InputBarPreview } from "../files/InputBarPreview";
-import { RobotIcon } from "@/components/icons/icons";
 import { Hoverable } from "@/components/Hoverable";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { Tooltip } from "@/components/tooltip/Tooltip";
+import { fetchAssistantInfo } from "@/lib/assistants/fetchAssistantInfo";
 const MAX_INPUT_HEIGHT = 200;
 
 export function ChatInputBar({
@@ -66,6 +63,7 @@ export function ChatInputBar({
   setConfigModalActiveTab: (tab: string) => void;
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
 }) {
+  
   // handle re-sizing of the text area
   useEffect(() => {
     const textarea = textAreaRef.current;
@@ -100,8 +98,25 @@ export function ChatInputBar({
 
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [assistantInfo, setAssistantInfo] = useState<PluginInfo>({
+    supports_file_upload: false,
+    supports_temperature_dialog: false,
+    custom_message_water_mark: "",    
+    is_recommendation_supported: false,
+    is_arabic: false
+  });
 
   const interactionsRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(()=>{
+    const fetchData = async ()=> {
+      const response = await fetchAssistantInfo(selectedAssistant.id);
+      if(Object.keys(response).length) {
+        setAssistantInfo(response);
+      }
+    }
+    fetchData();
+  },[])
 
   const hideSuggestions = () => {
     setShowSuggestions(false);
@@ -349,7 +364,7 @@ export function ChatInputBar({
               style={{ scrollbarWidth: "thin" }}
               role="textarea"
               aria-multiline
-              placeholder="Send a message..."
+              placeholder= {assistantInfo.custom_message_water_mark || "Send a message..."} 
               value={message}
               onKeyDown={(event) => {
                 if (
@@ -372,19 +387,21 @@ export function ChatInputBar({
             {/*    icon={FaBrain}*/}
             {/*    onClick={() => setConfigModalActiveTab("assistants")}*/}
             {/*  />*/}
-
-              <ChatInputOption
-                  flexPriority="second"
-                  name={
-                      llmOverrideManager.llmOverride.modelName||(llmName)
-                    // ||
-                    // (selectedAssistant
-                    //     ? selectedAssistant.llm_model_version_override || llmName
-                    //     : llmName)
-                  }
-                  icon={FiCpu}
-                  onClick={() => setConfigModalActiveTab("llms")}
-                  selectedTool={selectedAssistant?.tools[0]?.name}/>
+              {/* Model Selection popup */}
+              {assistantInfo.supports_temperature_dialog && (
+                <ChatInputOption
+                    flexPriority="second"
+                    name={
+                        llmOverrideManager.llmOverride.modelName||(llmName)
+                      // ||
+                      // (selectedAssistant
+                      //     ? selectedAssistant.llm_model_version_override || llmName
+                      //     : llmName)
+                    }
+                    icon={FiCpu}
+                    onClick={() => setConfigModalActiveTab("llms")}
+                    selectedTool={selectedAssistant?.tools[0]?.name}/>
+                )}
 
             {/*  {!retrievalDisabled && (*/}
             {/*    <ChatInputOption*/}
@@ -394,27 +411,30 @@ export function ChatInputBar({
             {/*      onClick={() => setConfigModalActiveTab("filters")}*/}
             {/*    />*/}
             {/*  )}*/}
-
-              <ChatInputOption
-                flexPriority="stiff"
-                name="File"
-                icon={FiPlusCircle}
-                onClick={() => {
-                  const input = document.createElement("input");
-                  input.type = "file";
-                  input.multiple = true; // Allow multiple files
-                  input.onchange = (event: any) => {
-                    const files = Array.from(
-                      event?.target?.files || []
-                    ) as File[];
-                    if (files.length > 0) {
-                      handleFileUpload(files);
-                    }
-                  };
-                  input.click();
-                }}                
-                selectedTool={selectedAssistant?.tools[0]?.name}
-              />
+              {/* Upload File */}
+              {assistantInfo.supports_file_upload && (
+                <ChatInputOption
+                  flexPriority="stiff"
+                  name="File"
+                  icon={FiPlusCircle}
+                  onClick={() => {
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.multiple = true; // Allow multiple files
+                    input.onchange = (event: any) => {
+                      const files = Array.from(
+                        event?.target?.files || []
+                      ) as File[];
+                      if (files.length > 0) {
+                        handleFileUpload(files);
+                      }
+                    };
+                    input.click();
+                  }}                
+                  selectedTool={selectedAssistant?.tools[0]?.name}
+                />
+              )}
+              
             </div>
             <div className="absolute bottom-2.5 right-10">
               <div

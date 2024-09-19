@@ -131,9 +131,6 @@ export function UserDropdown({
             )}
             {showAdminPanel && (
               <>
-                {!hideChatAndSearch && (
-                  <div className="border-t border-border my-1" />
-                )}
                 <Link
                   href="/admin/indexing/status"
                   className="flex py-3 px-4 cursor-pointer rounded hover:bg-hover-light"
