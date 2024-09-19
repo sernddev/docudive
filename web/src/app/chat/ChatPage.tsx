@@ -77,6 +77,7 @@ import ResizableSection from "@/components/resizable/ResizableSection";
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
 const SYSTEM_MESSAGE_ID = -3;
+const SUBJECT_REGEX = /[\*]*(العنوان|Subject)[\*]*\s*:\s*(.*)/
 
 export function ChatPage({
   documentSidebarInitialWidth,
@@ -470,8 +471,16 @@ export function ChatPage({
     }
   };
 
-  const sendEmailToDraft = async (messageId: number) =>{
-    const mailtoLink = `mailto:${user?.email}?subject=${encodeURIComponent("Subject")}&body=${encodeURIComponent("Email body")}`;
+  function getSubject(email_content: string) {
+    const match = email_content.match(SUBJECT_REGEX);    
+    return match ? match[2] : 'Email from ALYAH';
+  }
+
+  const sendEmailToDraft = async (content: string) =>{
+    const subject = encodeURIComponent(getSubject(content));
+    const messageWithoutSubject = content.replace(SUBJECT_REGEX, '');
+    const parsedContent = encodeURIComponent(messageWithoutSubject.replace(/^\s+|\s+$/g, ''));
+    const mailtoLink = `mailto:${user?.email}?subject=${subject}&body=${parsedContent}`;
     window.location.href = mailtoLink;
   };
 
@@ -1124,7 +1133,7 @@ export function ChatPage({
       setEditingRetrievalEnabled(false);
     }
   };
-  console.log(hasPerformedInitialScroll);
+  
   return (
     <>
       <HealthCheckBanner />
@@ -1400,10 +1409,11 @@ export function ChatPage({
                                     i === messageHistory.length - 1 &&
                                     isStreaming
                                       ? undefined
-                                      : () =>
-                                        sendEmailToDraft(
-                                            message.messageId as number,
-                                          )
+                                      : (content) =>
+                                      {
+                                        console.log(content);
+                                        sendEmailToDraft(content)
+                                      }
                                   }
                                   handleSearchQueryEdit={
                                     i === messageHistory.length - 1 &&
