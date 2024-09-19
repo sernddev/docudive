@@ -113,8 +113,10 @@ export function AssistantEditor({
     plugin_tags: [],
     supports_file_upload: false,
     supports_temperature_dialog: false,
-    custom_message_water_mark: "Send a message",    
+    custom_message_water_mark: "",    
     is_recommendation_supported: false,
+    is_arabic: false,
+    recommendation_prompt: "",
     is_favorite: false})
 
   const triggerFinalPromptUpdate = async (
@@ -237,6 +239,7 @@ export function AssistantEditor({
       existingPersona?.llm_model_version_override ?? null,
     starter_messages: existingPersona?.starter_messages ?? [],
     enabled_tools_map: enabledToolsMap,
+    assistants_info: assistantInfo,
     //   search_tool_enabled: existingPersona
     //   ? personaCurrentToolIds.includes(searchTool!.id)
     //   : ccPairs.length > 0,
@@ -986,6 +989,84 @@ export function AssistantEditor({
                         </div>
                       )}
                     />
+                  </div>
+                  {
+                  /* 
+                  image_url: str | None = None
+                  plugin_tags: List[str] | None = None
+                  supports_file_upload: bool = True
+                  supports_temperature_dialog: bool = True
+                  custom_message_water_mark: str = "Send a message"
+                  is_recommendation_supported: bool = False
+                  is_favorite: bool = False */
+                  }
+                  <div className="mb-6">
+                    <BooleanFormField
+                      name="assistants_info.supports_file_upload"
+                      label="Enable File Upload"
+                      noPadding
+                      onChange={() => {
+                        setAssistantInfo((prevState: PluginInfo)=> {
+                          return {...prevState, "supports_file_upload": !prevState.supports_file_upload}
+                        });
+                      }}
+                    />
+                    <BooleanFormField
+                      name="assistants_info.supports_temperature_dialog"
+                      label="Enable Temperature"
+                      noPadding
+                      onChange={() => {
+                        setAssistantInfo((prevState: PluginInfo)=> {
+                          return {...prevState, "supports_temperature_dialog": !prevState.supports_temperature_dialog}
+                        });
+                      }}
+                    />
+                    <BooleanFormField
+                      name="assistants_info.is_arabic"
+                      label="Support Arabic"
+                      noPadding
+                      onChange={() => {
+                        setAssistantInfo((prevState: PluginInfo)=> {
+                          return {...prevState, "is_arabic": !prevState.is_arabic}
+                        });
+                      }}
+                    />
+                    <BooleanFormField
+                      name="assistants_info.is_recommendation_supported"
+                      label="Enable Recommendation"
+                      noPadding
+                      onChange={() => {
+                        setAssistantInfo((prevState: PluginInfo)=> {
+                          return {...prevState, "is_recommendation_supported": !prevState.is_recommendation_supported}
+                        });
+                      }}
+                    />
+                    {assistantInfo.is_recommendation_supported && (
+                      <TextFormField
+                        isTextArea={true}
+                        name="assistants_info.recommendation_prompt"
+                        tooltip="Recommendation Prompt."
+                        label="Recommendation Prompt"
+                        onChange={(e:React.ChangeEvent<HTMLInputElement>)=> {
+                          setAssistantInfo((prevState: PluginInfo)=> {
+                            return {...prevState, "recommendation_prompt": e.target.value}
+                          });
+                        }}
+                        placeholder="Recommendation Prompt"
+                      />
+                    )}
+                    <TextFormField
+                      name="assistants_info.custom_message_water_mark"
+                      tooltip="Used to set placeholder message for chatbox."
+                      label="Placeholder Message"
+                      onChange={(e:React.ChangeEvent<HTMLInputElement>)=> {
+                        setAssistantInfo((prevState: PluginInfo)=> {
+                          return {...prevState, "custom_message_water_mark": e.target.value}
+                        });
+                      }}
+                      placeholder="e.g. 'Send Message'"
+                    />
+                    
                   </div>
                   <div className="mb-6">
                     <IconSelector defaultIcon={assistantInfo.image_url} onSelect={(selectedIcon: string)=> {
