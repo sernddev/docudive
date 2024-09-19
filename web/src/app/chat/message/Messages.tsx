@@ -123,7 +123,7 @@ export const AIMessage = ({
   hasDocs?: boolean;
   handleFeedback?: (feedbackType: FeedbackType) => void;
   sendEmailToInbox?: () => void;
-  sendEmailToDraft?: () => void;
+  sendEmailToDraft?: (content: string) => void;
   isCurrentlyShowingRetrieved?: boolean;
   handleShowRetrieved?: (messageNumber: number | null) => void;
   handleSearchQueryEdit?: (query: string) => void;
@@ -409,9 +409,9 @@ export const AIMessage = ({
               />
               {/* <Hoverable
                 icon={FiFileText}
-                onClick={() => {
-                  if(typeof sendEmailToDraft === 'function' ) { 
-                    sendEmailToDraft()
+                onClick={async () => {
+                  if(typeof sendEmailToDraft === 'function' ) {                    
+                    sendEmailToDraft(content.toString())
                   }
                 }}
               /> */}
