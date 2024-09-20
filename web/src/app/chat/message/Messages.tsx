@@ -425,14 +425,14 @@ export const AIMessage = ({
                   }
                 }}
               />
-              {/* <Hoverable
+              <Hoverable
                 icon={FiFileText}
                 onClick={async () => {
                   if(typeof sendEmailToDraft === 'function' ) {                    
                     sendEmailToDraft(content.toString())
                   }
                 }}
-              /> */}
+              />
             </div>
           )}
           </div>
