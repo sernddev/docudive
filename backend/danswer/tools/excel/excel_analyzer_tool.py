@@ -9,11 +9,11 @@ from sqlalchemy.orm import Session
 
 from danswer.dynamic_configs.interface import JSON_ro
 from danswer.file_store.models import InMemoryChatFile
-from danswer.llm.answering.prompts.build import AnswerPromptBuilder, default_build_system_message, \
-    default_build_user_message, default_build_system_message_by_prmpt, default_build_user_message_by_task_prompt
+from danswer.llm.answering.prompts.build import AnswerPromptBuilder, \
+    default_build_system_message_by_prmpt, default_build_user_message_by_task_prompt
 from danswer.llm.utils import message_to_string
-from danswer.secondary_llm_flows.query_expansion import history_based_query_rephrase
 from danswer.tools.excel import excel_analyzer_bl
+from danswer.tools.excel.excel_analyzer_bl import load_and_convert_types
 from danswer.tools.tool import Tool
 from danswer.tools.tool import ToolResponse
 from danswer.tools.utils import generate_dataframe_from_excel
@@ -34,9 +34,6 @@ concise_keywords = [
     "concise summary", "brief", "summary", "short report", "quick overview",  # English
     "ملخص موجز", "موجز", "ملخص", "تقرير قصير", "نظرة سريعة"  # Arabic
 ]
-
-
-
 
 EXCEL_ANALYZER_RESPONSE_ID = "excel_analyzer_response"
 
@@ -189,7 +186,7 @@ class ExcelAnalyzerTool(Tool):
             llm: LLM,
             force_run: bool = False,
     ) -> dict[str, Any] | None:
-        #rephrased_query = history_based_query_rephrase(query=query, history=history, llm=llm)
+        # rephrased_query = history_based_query_rephrase(query=query, history=history, llm=llm)
         return {"query": query}
 
     def build_tool_message_content(
@@ -210,42 +207,25 @@ class ExcelAnalyzerTool(Tool):
             }
         )
 
-    def load_and_convert_dates(self, df):
-        if df is None or df.empty:
-            print("DataFrame is None or empty.")
-            return df
-
-        for col in df.columns:
-            if df[col].dtype == 'object':
-                try:
-                    # Try converting the column to datetime
-                    converted_col = pd.to_datetime(df[col], errors='coerce')
-
-                    if converted_col.notna().sum() > 0.5 * len(df):
-                        df[col] = converted_col  # Keep the datetime conversion
-                    else:
-                        df[col] = df[col]  # Revert back to the original column
-                except Exception as e:
-                    print(f"Error converting column {col} to datetime: {e}")
-
-        return df
     def run(self, **kwargs: str) -> Generator[ToolResponse, None, None]:
         query = cast(str, kwargs["query"])
         if query.startswith("Draw chart for:"):
             query = query[len("Draw chart for:"):]
         query = query.strip()
         file = None
-        if not self.files:
-            # Fetch last file
+        if self.files is not None and len(self.files) > 0:
+            file = self.files[0]
+        elif self.history is not None and len(self.history) > 0:
             previous_msgs = self.history[0]
-            if previous_msgs.files:
+            if previous_msgs.files is not None and len(previous_msgs.files) > 0:
                 file = previous_msgs.files[0]
         else:
-            file = self.files[0]
+            file = None  # Handle case where no file is found
 
         if file:
             dataframe = generate_dataframe_from_excel(file)
-            dataframe = self.load_and_convert_dates(dataframe)
+            dataframe = load_and_convert_types(dataframe)
+
             quer_with_schema = self.get_schema_with_prompt(dataframe, query)
             # send query to LLM to get pandas functions, out put should be valid pandas function
             # we don't need to send file content to LLM, becz it is structure data loaded to dataframe
@@ -267,16 +247,25 @@ class ExcelAnalyzerTool(Tool):
 
             response = excel_analyzer_bl.eval_expres(dframe=dataframe, hint=query, exp=tool_output.strip())
             self.log_response_data(response)
-            analzye_prompt =self.generate_analyze_prompt(response= response, query=query, schema=quer_with_schema)
+            analzye_prompt = self.generate_analyze_prompt(response=response, query=query, schema=quer_with_schema,
+                                                          original_dataset=dataframe)
 
             tool_output = message_to_string(
                 self.llm.invoke(prompt=analzye_prompt, metadata=self.metadata)
             )
+            if response.data is None and not response.has_min_max():
+                tool_output += f"\n\nData Preview: \n\n{str(dataframe.head(5))}"
 
             yield ToolResponse(
                 id=EXCEL_ANALYZER_RESPONSE_ID,
                 response=tool_output
             )
+
+        yield ToolResponse(
+            id=EXCEL_ANALYZER_RESPONSE_ID,
+            response="Please upload file"
+        )
+
     def log_response_data(self, response):
         data = response.data
 
@@ -319,43 +308,15 @@ class ExcelAnalyzerTool(Tool):
         else:
             return "concise"
 
-    def generate_analyze_prompt(self, response, query, schema):
+    def get_dataframe_preview(self, dataframe):
+        return f"{dataframe.head(5).to_csv(index=False)}\n...\n        {dataframe.tail(5).to_csv(index=False, header=False)}"
+    def generate_analyze_prompt(self, response, query, schema, original_dataset):
+
         analzye_prompt = (
             f"Your data analyst, analyze the data from the dataframe and try to answer the user's question. "
         )
 
-        stat_info = []
-        if response.min_val is not None:
-            stat_info.append("min")
-        if response.max_val is not None:
-            stat_info.append("max")
-
-        if stat_info:
-            analzye_prompt += f"You also have {', '.join(stat_info)} are statistical information. "
-        #else:
-        #    analzye_prompt += "You have average and other statistical information. "
-
-        if response.data is not None:
-            temp_data = response.data
-            if isinstance(response.data, pd.DataFrame):
-                temp_data = response.data if len(
-                    response.data) <= 10 else f"{response.data.head(5)}\n...\n{response.data.tail(5)}"
-
-            report_text = (
-                "Based on the given statistical data, provide useful insights. Write a detailed report based on the "
-                "given data." if "detailed" in self.identify_report_type(query)
-                else "Based on the given statistical data, provide a concise summary on the given data. Don't explain "
-                     "much."
-            )
-
-            analzye_prompt += (
-                f"{report_text} "
-                f"This is the user query: {query}. "
-                "Here are the facts: \n"
-                f"{temp_data}"
-            )
-
-        else:
+        if response.data is None and not response.has_min_max():
             analzye_prompt += (
                 f"This is the user query: {query}. "
                 "No valid data was fetched. Please ask user to re-write the question, make this very short and "
@@ -364,18 +325,66 @@ class ExcelAnalyzerTool(Tool):
                 f"but dont generate any source code,  just generate questions  based on this schema:{schema}, "
                 f"and ask user to try, dont mention to used these are simple test question. mention these questions "
                 f"are suggestions"
+                f"\n\n Data Preview: {self.get_dataframe_preview(original_dataset)}, return this data in MD table format as part of response"
             )
+            return analzye_prompt
+
+        if response.has_min_max() is not False and "detailed" in self.identify_report_type(query):
+            analzye_prompt += f", Statistics information :  {str(response.stats_info)}"
+        elif response.has_min_max() is not False:
+            analzye_prompt += f", min: {response.stats_info['min']} , max: {response.stats_info['max']}"
+
+        if response.data is not None:
+            temp_data = None
+            type_of_data = None
+
+            # Determine the type of data
+            if isinstance(response.data, pd.DataFrame):
+                type_of_data = 'dataframe'
+                if len(response.data) > 10:
+                    # Include header only with head(5), and skip header with tail(5)
+                    temp_data = f"data preview first and last 5 records: \n\n ''' {self.get_dataframe_preview(original_dataset)} '''"
+                else:
+                    temp_data = response.data.to_csv(index=False)
+            elif isinstance(response.data, pd.Series):
+                type_of_data = 'series'
+                temp_data = f"sample data points first and last 5: {response.data.head(5).to_list()} ... {response.data.tail(5).to_list()}"
+            else:
+                type_of_data = 'single_value'
+                temp_data = str(response.data)
+
+            report_text = (
+                "\nBased on the given statistical data, provide useful insights. Write a detailed report based on the "
+                "given data." if "detailed" in self.identify_report_type(query)
+                else "\nBased on the given statistical data, provide a concise summary on the given data. Don't explain "
+                     "much."
+            )
+
+            if type_of_data == 'dataframe':
+                analzye_prompt += (
+                    f"{report_text} "
+                    f"This is the user query: {query}. "
+                    f"Total record count for the user query: {len(response.data)} out of total records in given data {len(original_dataset)}."
+                    f"Here are the facts about user query in csv format: \n{temp_data}"
+                )
+            elif type_of_data == 'series':
+                analzye_prompt += (
+                    f"{report_text} "
+                    f"This is the user query: {query}. "
+                    f"Here are the facts about user query in list format: \n{temp_data}"
+                )
+            elif type_of_data == 'single_value':
+                analzye_prompt += (
+                    f"{report_text} "
+                    f"This is the user query: {query}. "
+                    f"Here are the facts about user query in value: {temp_data}"
+                )
+
 
         logger.info(analzye_prompt)
 
-        if response.min_val is not None:
-            analzye_prompt += f", min: {response.min_val}"
-
-        if response.max_val is not None:
-            analzye_prompt += f", max: {response.max_val}"
-
-        analzye_prompt = analzye_prompt +("\n\n DON'T MENTION THAT YOUR USING DATAFRAME, WHEN EVER REQUIRED SAY BASED "
-                                          "ON GIVEN DATA OR DATASET")
+        analzye_prompt = analzye_prompt + ("\n\n DON'T MENTION THAT YOUR USING DATAFRAME, WHEN EVER REQUIRED SAY BASED "
+                                           "ON GIVEN DATA OR DATASET")
         return analzye_prompt
 
     def final_result(self, *args: ToolResponse) -> JSON_ro:

@@ -49,4 +49,6 @@ export interface PluginInfo{
   custom_message_water_mark?: string;
   is_recommendation_supported?: boolean;
   is_favorite?:boolean;
+  recommendation_prompt?: string;
+  is_arabic?:boolean;
 }

@@ -10,7 +10,7 @@ from danswer.configs.app_configs import SMTP_PORT
 from danswer.configs.app_configs import SMTP_SERVER
 from danswer.configs.app_configs import SMTP_USER
 
-SUBJECT_MATCH_PATTERN = r"\*\*Subject\*\*: (.*)"
+SUBJECT_MATCH_PATTERN = r"(العنوان|[\*]*Subject[\*]*)\s*:\s*(.*)"
 
 
 class EmailService:
@@ -57,5 +57,5 @@ class EmailService:
 
         subject = ""
         if subject_match:
-            subject = subject_match.group(1)
+            subject = subject_match.group(2)
         return subject

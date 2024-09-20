@@ -81,9 +81,7 @@ const ChatInputOption = ({
   );
 
   if (!dropdownContent) {
-    return (
-      <div style={{ display: selectedTool == 'ComposeEmailTool'
-        ? 'none' : 'block' }}>
+    return (      
         <div
           onClick={onClick}
           className={`text-ellipsis
@@ -94,8 +92,7 @@ const ChatInputOption = ({
         >
           {option}
         </div>
-      </div>
-    );
+        );
   }  
   return (
     <Popover
