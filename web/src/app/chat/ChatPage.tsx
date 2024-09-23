@@ -1403,7 +1403,7 @@ export function ChatPage({
                                       : (feedbackType) =>
                                           setCurrentFeedback([
                                             feedbackType,
-                                            message.messageId as number,
+                                            message.messageId as number
                                           ])
                                   }
                                   sendEmailToInbox={
@@ -1412,7 +1412,7 @@ export function ChatPage({
                                       ? undefined
                                       : () =>
                                         sendEmailToInbox(
-                                            message.messageId as number,
+                                            message.messageId as number
                                           )
                                   }
                                   sendEmailToDraft={
