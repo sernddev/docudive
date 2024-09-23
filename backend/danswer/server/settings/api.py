@@ -113,7 +113,7 @@ def upsert_image_url(user_info: KeyValueStoreGeneric, _: User | None = Depends(c
     plugin_info.image_url = user_info.value
     upsert_plugin_info(user_info.key, plugin_info)
     # Invalidate the cache
-    get_image_from_key_store.cache_clear()
+    #get_image_from_key_store.cache_clear()
     # Optionally reload the updated key into the cache
     get_image_from_key_store(key)
 
@@ -169,7 +169,7 @@ def delete_image_url(key: str,  _: User | None = Depends(current_user)) -> None:
     plugin_info = load_plugin_info(key)
     plugin_info.image_url = ""
     upsert_plugin_info(key, plugin_info)
-    get_image_from_key_store.cache_clear()
+    #get_image_from_key_store.cache_clear()
 
 
 @basic_router.get("/icons")

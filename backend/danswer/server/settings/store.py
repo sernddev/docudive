@@ -35,7 +35,7 @@ def load_key_value(key) -> KeyValueStoreGeneric | None:
     return kvstore
 
 
-@lru_cache(maxsize=50)
+#@lru_cache(maxsize=50)
 def get_image_from_key_store(key) -> str | None:
     return None if load_plugin_info(key) is None else load_plugin_info(key).image_url
 

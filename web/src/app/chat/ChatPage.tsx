@@ -493,8 +493,18 @@ export function ChatPage({
     const subject = encodeURIComponent(getSubject(content));
     const messageWithoutSubject = content.replace(SUBJECT_REGEX, '');
     const parsedContent = encodeURIComponent(messageWithoutSubject.replace(/^\s+|\s+$/g, ''));
+    
     const mailtoLink = `mailto:${user?.email}?subject=${subject}&body=${parsedContent}`;
-    window.location.href = mailtoLink;
+    if (mailtoLink.length <= 2048){
+      window.location.href = mailtoLink;        
+    }
+    else{
+      setPopup({
+        message:
+          "Due to email size restrictions, we couldn't create a draft. Please send it to your inbox",
+        type: "error",
+      });
+    }    
   };
 
   const [sharingModalVisible, setSharingModalVisible] =

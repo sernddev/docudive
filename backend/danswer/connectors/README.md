@@ -1,7 +1,7 @@
-<!-- DANSWER_METADATA={"link": "https://github.com/danswer-ai/danswer/blob/main/backend/danswer/connectors/README.md"} -->
+<!-- SPECTRA_METADATA={"link": "https://github.com/SPECTRA-ai/SPECTRA/blob/main/backend/SPECTRA/connectors/README.md"} -->
 
-# Writing a new Danswer Connector
-This README covers how to contribute a new Connector for Danswer. It includes an overview of the design, interfaces,
+# Writing a new SPECTRA Connector
+This README covers how to contribute a new Connector for SPECTRA. It includes an overview of the design, interfaces,
 and required changes.
 
 Thank you for your contribution!
@@ -22,9 +22,9 @@ Connectors come in 3 different flows:
 
 
 ### Connector Implementation
-Refer to [interfaces.py](https://github.com/danswer-ai/danswer/blob/main/backend/danswer/connectors/interfaces.py)
+Refer to [interfaces.py](https://github.com/SPECTRA-ai/SPECTRA/blob/main/backend/SPECTRA/connectors/interfaces.py)
 and this first contributor created Pull Request for a new connector (Shoutout to Dan Brown):
-[Reference Pull Request](https://github.com/danswer-ai/danswer/pull/139)
+[Reference Pull Request](https://github.com/SPECTRA-ai/SPECTRA/pull/139)
 
 #### Implementing the new Connector
 The connector must subclass one or more of LoadConnector, PollConnector, or EventConnector.
@@ -63,22 +63,22 @@ if __name__ == "__main__":
 ### Additional Required Changes:
 #### Backend Changes
 - Add a new type to
-[DocumentSource](https://github.com/danswer-ai/danswer/blob/main/backend/danswer/configs/constants.py)
+[DocumentSource](https://github.com/SPECTRA-ai/SPECTRA/blob/main/backend/SPECTRA/configs/constants.py)
 - Add a mapping from DocumentSource (and optionally connector type) to the right connector class
-[here](https://github.com/danswer-ai/danswer/blob/main/backend/danswer/connectors/factory.py#L33)
+[here](https://github.com/SPECTRA-ai/SPECTRA/blob/main/backend/SPECTRA/connectors/factory.py#L33)
 
 #### Frontend Changes
-- Create the new connector directory and admin page under `danswer/web/src/app/admin/connectors/`
+- Create the new connector directory and admin page under `SPECTRA/web/src/app/admin/connectors/`
 - Create the new icon, type, source, and filter changes
-(refer to existing [PR](https://github.com/danswer-ai/danswer/pull/139))
+(refer to existing [PR](https://github.com/SPECTRA-ai/SPECTRA/pull/139))
 
 #### Docs Changes
 Create the new connector page (with guiding images!) with how to get the connector credentials and how to set up the
-connector in Danswer. Then create a Pull Request in https://github.com/danswer-ai/danswer-docs
+connector in SPECTRA. Then create a Pull Request in https://github.com/SPECTRA-ai/SPECTRA-docs
 
 
 ### Before opening PR
 1. Be sure to fully test changes end to end with setting up the connector and updating the index with new docs from the
 new connector.
 2. Be sure to run the linting/formatting, refer to the formatting and linting section in
-[CONTRIBUTING.md](https://github.com/danswer-ai/danswer/blob/main/CONTRIBUTING.md#formatting-and-linting)
+[CONTRIBUTING.md](https://github.com/SPECTRA-ai/SPECTRA/blob/main/CONTRIBUTING.md#formatting-and-linting)

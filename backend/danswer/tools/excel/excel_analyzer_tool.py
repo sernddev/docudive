@@ -13,7 +13,7 @@ from danswer.llm.answering.prompts.build import AnswerPromptBuilder, \
     default_build_system_message_by_prmpt, default_build_user_message_by_task_prompt
 from danswer.llm.utils import message_to_string
 from danswer.tools.excel import excel_analyzer_bl
-from danswer.tools.excel.excel_analyzer_bl import load_and_convert_types
+from danswer.tools.excel.excel_analyzer_bl import load_and_convert_types, dataframe_to_markdown_bold_header
 from danswer.tools.tool import Tool
 from danswer.tools.tool import ToolResponse
 from danswer.tools.utils import generate_dataframe_from_excel
@@ -253,6 +253,8 @@ class ExcelAnalyzerTool(Tool):
             tool_output = message_to_string(
                 self.llm.invoke(prompt=analzye_prompt, metadata=self.metadata)
             )
+            if response.data is None and not response.has_min_max():
+                tool_output += f"\n\nData Preview: \n\n{dataframe_to_markdown_bold_header(dataframe.head(5))}"
 
             yield ToolResponse(
                 id=EXCEL_ANALYZER_RESPONSE_ID,
@@ -263,6 +265,10 @@ class ExcelAnalyzerTool(Tool):
             id=EXCEL_ANALYZER_RESPONSE_ID,
             response="Please upload file"
         )
+
+
+
+
 
     def log_response_data(self, response):
         data = response.data
@@ -306,14 +312,30 @@ class ExcelAnalyzerTool(Tool):
         else:
             return "concise"
 
+    def get_dataframe_preview(self, dataframe):
+        return f"{dataframe.head(5).to_csv(index=False)}\n...\n        {dataframe.tail(5).to_csv(index=False, header=False)}"
     def generate_analyze_prompt(self, response, query, schema, original_dataset):
+
         analzye_prompt = (
             f"Your data analyst, analyze the data from the dataframe and try to answer the user's question. "
         )
 
-        if response.has_min_max() is not None and "detailed" in self.identify_report_type(query):
+        if response.data is None and not response.has_min_max():
+            analzye_prompt += (
+                f"This is the user query: {query}. "
+                "No valid data was fetched. Please ask user to re-write the question, make this very short and "
+                "meaning full in separate paragraph, mention based on given data."
+                f"suggest 3 very simple text question based on the  schema like with where clause or group by, "
+                f"but dont generate any source code,  just generate questions  based on this schema:{schema}, "
+                f"and ask user to try, dont mention to used these are simple test question. mention these questions "
+                f"are suggestions"
+                f"\n\n Data Preview: {self.get_dataframe_preview(original_dataset)},"
+            )
+            return analzye_prompt
+
+        if response.has_min_max() is not False and "detailed" in self.identify_report_type(query):
             analzye_prompt += f", Statistics information :  {str(response.stats_info)}"
-        elif response.has_min_max() is not None:
+        elif response.has_min_max() is not False:
             analzye_prompt += f", min: {response.stats_info['min']} , max: {response.stats_info['max']}"
 
         if response.data is not None:
@@ -325,7 +347,7 @@ class ExcelAnalyzerTool(Tool):
                 type_of_data = 'dataframe'
                 if len(response.data) > 10:
                     # Include header only with head(5), and skip header with tail(5)
-                    temp_data = f"data preview first and last 5 records: \n\n ''' {response.data.head(5).to_csv(index=False)}\n...\n{response.data.tail(5).to_csv(index=False, header=False)} '''"
+                    temp_data = f"data preview first and last 5 records: \n\n ''' {self.get_dataframe_preview(original_dataset)} '''"
                 else:
                     temp_data = response.data.to_csv(index=False)
             elif isinstance(response.data, pd.Series):
@@ -346,7 +368,7 @@ class ExcelAnalyzerTool(Tool):
                 analzye_prompt += (
                     f"{report_text} "
                     f"This is the user query: {query}. "
-                    f"Total record count for the user query: {len(response.data)} out of total records in given data {len(original_dataset)}. "
+                    f"Total record count for the user query: {len(response.data)} out of total records in given data {len(original_dataset)}."
                     f"Here are the facts about user query in csv format: \n{temp_data}"
                 )
             elif type_of_data == 'series':
@@ -362,19 +384,8 @@ class ExcelAnalyzerTool(Tool):
                     f"Here are the facts about user query in value: {temp_data}"
                 )
 
-        else:
-            analzye_prompt += (
-                f"This is the user query: {query}. "
-                "No valid data was fetched. Please ask user to re-write the question, make this very short and "
-                "meaning full in separate paragraph"
-                f"suggest 3 very simple text question based on the  schema like with where clause or group by, "
-                f"but dont generate any source code,  just generate questions  based on this schema:{schema}, "
-                f"and ask user to try, dont mention to used these are simple test question. mention these questions "
-                f"are suggestions"
-            )
 
         logger.info(analzye_prompt)
-
 
         analzye_prompt = analzye_prompt + ("\n\n DON'T MENTION THAT YOUR USING DATAFRAME, WHEN EVER REQUIRED SAY BASED "
                                            "ON GIVEN DATA OR DATASET")

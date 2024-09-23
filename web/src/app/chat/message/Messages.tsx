@@ -34,6 +34,7 @@ import { ToolRunDisplay } from "../tools/ToolRunningAnimation";
 import { Hoverable } from "@/components/Hoverable";
 import { DocumentPreview } from "../files/documents/DocumentPreview";
 import { InMessageImage } from "../files/images/InMessageImage";
+import { fetchAssistantInfo } from "@/lib/assistants/fetchAssistantInfo"
 import { CodeBlock } from "./CodeBlock";
 import rehypePrism from "rehype-prism-plus";
 
@@ -42,7 +43,7 @@ import Prism from "prismjs";
 
 import "prismjs/themes/prism-tomorrow.css";
 import "./custom-code-styles.css";
-import { Persona } from "@/app/admin/assistants/interfaces";
+import { Persona, PluginInfo } from "@/app/admin/assistants/interfaces";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { InternetSearchIcon } from "@/components/InternetSearchIcon";
 import MarkdownImage from "./MarkdownImage";
@@ -131,9 +132,25 @@ export const AIMessage = ({
   retrievalDisabled?: boolean;
 }) => {
   const [isReady, setIsReady] = useState(false);
+  const [assistantInfo, setAssistantInfo] = useState<PluginInfo>({
+    image_url: "",
+    plugin_tags: [],
+    supports_file_upload: false,
+    supports_temperature_dialog: false,
+    custom_message_water_mark: "",    
+    is_recommendation_supported: false,
+    is_arabic: false,
+    recommendation_prompt: "",
+    is_favorite: false});
   useEffect(() => {
     Prism.highlightAll();
     setIsReady(true);
+
+    fetchAssistantInfo(currentPersona.id).then((pluginInfo: PluginInfo)=> {
+      if(pluginInfo) {
+        setAssistantInfo(pluginInfo);
+      }
+    })
   }, []);
 
   // this is needed to give Prism a chance to load
@@ -214,7 +231,8 @@ export const AIMessage = ({
                 )}
             </div>
 
-            <div className="w-message-xs 2xl:w-message-sm 3xl:w-message-default break-words mt-1 ml-8">
+            <div className="w-message-xs 2xl:w-message-sm 3xl:w-message-default break-words mt-1 ml-8"
+              style={{ direction: assistantInfo.is_arabic ? "rtl" : "ltr" }}>
               {(!toolCall || toolCall.tool_name === SEARCH_TOOL_NAME) &&
                 danswerSearchToolEnabledForPersona && (
                   <>
@@ -407,14 +425,14 @@ export const AIMessage = ({
                   }
                 }}
               />
-              {/* <Hoverable
+              <Hoverable
                 icon={FiFileText}
                 onClick={async () => {
                   if(typeof sendEmailToDraft === 'function' ) {                    
                     sendEmailToDraft(content.toString())
                   }
                 }}
-              /> */}
+              />
             </div>
           )}
           </div>
