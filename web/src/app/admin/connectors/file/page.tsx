@@ -72,7 +72,7 @@ const Main = () => {
         add a line at the very beginning of the file that looks like:
         <div className="flex my-2">
           <div className="mx-auto font-bold">
-            #DANSWER_METADATA={"{"}&quot;link&quot;: &quot;{"<LINK>"}&quot;{"}"}
+            #SPECTRA_METADATA={"{"}&quot;link&quot;: &quot;{"<LINK>"}&quot;{"}"}
           </div>
         </div>{" "}
         where <i>{"<LINK>"}</i> is the link to the file. This will enable
