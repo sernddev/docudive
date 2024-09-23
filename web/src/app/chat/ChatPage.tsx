@@ -15,7 +15,7 @@ import {
   ToolCallMetadata,
 } from "./interfaces";
 import { ChatSidebar } from "./sessionSidebar/ChatSidebar";
-import { Persona } from "../admin/assistants/interfaces";
+import { Persona, PluginInfo } from "../admin/assistants/interfaces";
 import { HealthCheckBanner } from "@/components/health/healthcheck";
 import { InstantSSRAutoRefresh } from "@/components/SSRAutoRefresh";
 import {
@@ -73,6 +73,7 @@ import { TbLayoutSidebarRightExpand } from "react-icons/tb";
 import { SIDEBAR_WIDTH_CONST } from "@/lib/constants";
 
 import ResizableSection from "@/components/resizable/ResizableSection";
+import { fetchAssistantInfo } from "@/lib/assistants/fetchAssistantInfo";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -420,7 +421,13 @@ export function ChatPage({
   // just choose a conservative default, this will be updated in the
   // background on initial load / on persona change
   const [maxTokens, setMaxTokens] = useState<number>(4096);
-
+  const [assistantInfo, setAssistantInfo] = useState<PluginInfo>({
+    supports_file_upload: false,
+    supports_temperature_dialog: false,
+    custom_message_water_mark: "",    
+    is_recommendation_supported: false,
+    is_arabic: false
+  });
   // fetch # of allowed document tokens for the selected Persona
   useEffect(() => {
     async function fetchMaxTokens() {
@@ -432,7 +439,13 @@ export function ChatPage({
         setMaxTokens(maxTokens);
       }
     }
-
+    const fetchData = async ()=> {
+      const response = await fetchAssistantInfo(livePersona.id);
+      if(Object.keys(response).length) {
+        setAssistantInfo(response);
+      }
+    }
+    fetchData();
     fetchMaxTokens();
   }, [livePersona]);
 
@@ -1071,7 +1084,7 @@ export function ChatPage({
         let assistantId:any = searchParams.get("assistantId");
         assistantId = assistantId && parseInt(assistantId);
         const personaId = selectedAssistant?.id || existingChatSessionPersonaId || assistantId;
-        if(files.length && personaId) {
+        if(assistantInfo.is_recommendation_supported && files.length && personaId) {
           getRecommnededQuestions(files[0].id, personaId).then((response: string[])=> {
             setQuestions(response);
           })
@@ -1666,6 +1679,7 @@ export function ChatPage({
                           handleFileUpload={handleImageUpload}
                           setConfigModalActiveTab={setConfigModalActiveTab}
                           textAreaRef={textAreaRef}
+                          assistantInfo={assistantInfo}
                         />
                       </div>
                     </div>

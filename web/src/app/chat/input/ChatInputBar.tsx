@@ -23,7 +23,6 @@ import { InputBarPreview } from "../files/InputBarPreview";
 import { Hoverable } from "@/components/Hoverable";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { Tooltip } from "@/components/tooltip/Tooltip";
-import { fetchAssistantInfo } from "@/lib/assistants/fetchAssistantInfo";
 const MAX_INPUT_HEIGHT = 200;
 
 export function ChatInputBar({
@@ -44,6 +43,7 @@ export function ChatInputBar({
   setConfigModalActiveTab,
   textAreaRef,
   alternativeAssistant,
+  assistantInfo
 }: {
   onSetSelectedAssistant: (alternativeAssistant: Persona | null) => void;
   personas: Persona[];
@@ -62,6 +62,7 @@ export function ChatInputBar({
   handleFileUpload: (files: File[]) => void;
   setConfigModalActiveTab: (tab: string) => void;
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
+  assistantInfo: PluginInfo
 }) {
   
   // handle re-sizing of the text area
@@ -98,25 +99,9 @@ export function ChatInputBar({
 
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [assistantInfo, setAssistantInfo] = useState<PluginInfo>({
-    supports_file_upload: false,
-    supports_temperature_dialog: false,
-    custom_message_water_mark: "",    
-    is_recommendation_supported: false,
-    is_arabic: false
-  });
+  
 
   const interactionsRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(()=>{
-    const fetchData = async ()=> {
-      const response = await fetchAssistantInfo(selectedAssistant.id);
-      if(Object.keys(response).length) {
-        setAssistantInfo(response);
-      }
-    }
-    fetchData();
-  },[])
 
   const hideSuggestions = () => {
     setShowSuggestions(false);
