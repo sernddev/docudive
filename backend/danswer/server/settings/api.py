@@ -40,11 +40,6 @@ basic_router = APIRouter(prefix="/settings")
 logger = setup_logger()
 
 
-class PluginInfoEnum(enum.Enum):
-    IMAGE_URL = 1
-    PLUGIN_TAGS = 2
-
-
 @admin_router.put("")
 def put_settings(
         settings: Settings, _: User | None = Depends(current_admin_user)
