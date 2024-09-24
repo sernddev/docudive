@@ -10,14 +10,13 @@ import { useIcon } from "@/lib/hooks";
 export function ChatIntro({
   availableSources,
   selectedPersona,
+  iconURL
 }: {
   availableSources: ValidSources[];
   selectedPersona: Persona;
+  iconURL: string;
 }) {
   const availableSourceMetadata = getSourceMetadataForSources(availableSources);
-  const { iconUrls, isLoading, isError } = useIcon();
-  const imageURL = !isLoading && !isError && iconUrls[selectedPersona.id] ? iconUrls[selectedPersona.id] : getAssistantIcon(selectedPersona.id);
-
   return (
     <>
       <div className="flex justify-center items-center h-full">
@@ -25,7 +24,7 @@ export function ChatIntro({
           <div className="flex">
             <div className="mx-auto">
               <div className="flex justify-center">
-                <img src={imageURL} alt={selectedPersona.name} width={80} />
+                <img src={iconURL} alt={selectedPersona.name} width={80} />
               </div>
               <div className="m-auto text-3xl font-bold text-strong mt-4 w-fit">
                 {selectedPersona?.name || "How can I help you today?"}

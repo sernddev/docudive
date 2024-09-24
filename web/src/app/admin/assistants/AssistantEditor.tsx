@@ -82,6 +82,7 @@ export function AssistantEditor({
   ccPairs,
   documentSets,
   user,
+  assistantInfo,
   defaultPublic,
   redirectType,
   llmProviders,
@@ -92,6 +93,7 @@ export function AssistantEditor({
   ccPairs: CCPairBasicInfo[];
   documentSets: DocumentSet[];
   user: User | null;
+  assistantInfo?: PluginInfo | null
   defaultPublic: boolean;
   redirectType: SuccessfulPersonaUpdateRedirectType;
   llmProviders: FullLLMProvider[];
@@ -108,21 +110,7 @@ export function AssistantEditor({
 
   const [finalPrompt, setFinalPrompt] = useState<string | null>("");
   const [finalPromptError, setFinalPromptError] = useState<string>("");
-  const [assistantInfo, setAssistantInfo] = useState<PluginInfo>({
-    image_url: "",
-    plugin_tags: [],
-    supports_file_upload: false,
-    supports_temperature_dialog: false,
-    custom_message_water_mark: "",    
-    is_recommendation_supported: false,
-    is_arabic: false,
-    recommendation_prompt: {
-      system: "",
-      task: ""
-    },
-    is_favorite: false
-  });
-
+ 
   const triggerFinalPromptUpdate = async (
     systemPrompt: string,
     taskPrompt: string,
@@ -141,6 +129,24 @@ export function AssistantEditor({
   const isUpdate = existingPersona !== undefined && existingPersona !== null;
   const existingPrompt = existingPersona?.prompts[0] ?? null;
 
+  if(!assistantInfo) {
+    assistantInfo = {
+      image_url: "",
+      plugin_tags: [],
+      supports_file_upload: false,
+      allowed_file_size: 10,
+      supports_temperature_dialog: false,
+      custom_message_water_mark: "",    
+      is_recommendation_supported: false,
+      is_arabic: false,
+      recommendation_prompt: {
+        system: "",
+        task: ""
+      },
+      is_favorite: false
+    }
+  }
+
   useEffect(() => {
     if (isUpdate && existingPrompt) {
       triggerFinalPromptUpdate(
@@ -148,19 +154,8 @@ export function AssistantEditor({
         existingPrompt.task_prompt,
         existingPersona.num_chunks === 0
       );
-
-      fetchAssistantInfo(existingPersona.id).then((pluginInfo: PluginInfo)=> {
-        if(pluginInfo) {
-          if(!pluginInfo.recommendation_prompt) {
-            pluginInfo.recommendation_prompt = {
-              system: "",
-              task: ""
-            }
-          }
-          setAssistantInfo(pluginInfo);
-        }
-      })
     }
+   
   }, []);
 
   const defaultProvider = llmProviders.find(
@@ -231,8 +226,6 @@ export function AssistantEditor({
     enabledToolsMap[tool.id] = personaCurrentToolIds.includes(tool.id);
   });
   
-  console.log('test',availableTools, excelAnalyzerTool, enabledToolsMap);
-
   const mandateFileUpload = (currentToolState: {[key: number]: boolean}) => {
     return [excelAnalyzerTool?.id, fileDataInfographicsTool?.id]
         .some((id: number | undefined)=> id && currentToolState[id]);
@@ -473,7 +466,7 @@ export function AssistantEditor({
               [toolId]: !values.enabled_tools_map[toolId],
             };
             if(mandateFileUpload(updatedEnabledToolsMap)) {
-              updateAssitantInfo({
+              updateAssistantInfo({
                 key: 'supports_file_upload', 
                 value: true
               });
@@ -481,7 +474,7 @@ export function AssistantEditor({
             setFieldValue("enabled_tools_map", updatedEnabledToolsMap);
           }
 
-          function updateAssitantInfo({key, value, isToggle, subKey}: UpdatePluginInfo) {
+          function updateAssistantInfo({key, value, isToggle, subKey}: UpdatePluginInfo) {
             let newValue = value;
             if(subKey && key === 'recommendation_prompt' && values.assistants_info.recommendation_prompt ) {
               newValue = values.assistants_info.recommendation_prompt = {
@@ -1029,16 +1022,6 @@ export function AssistantEditor({
                       )}
                     />
                   </div>
-                  {
-                  /* 
-                  image_url: str | None = None
-                  plugin_tags: List[str] | None = None
-                  supports_file_upload: bool = True
-                  supports_temperature_dialog: bool = True
-                  custom_message_water_mark: str = "Send a message"
-                  is_recommendation_supported: bool = False
-                  is_favorite: bool = False */
-                  }
                   <div className="mb-6">
                     <BooleanFormField
                       name="assistants_info.supports_file_upload"
@@ -1046,19 +1029,33 @@ export function AssistantEditor({
                       noPadding
                       disabled={mandateFileUpload(values.enabled_tools_map)}
                       onChange={() => {
-                        updateAssitantInfo({
+                        updateAssistantInfo({
                           key: 'supports_file_upload', 
                           value: values.assistants_info.supports_file_upload,
                           isToggle: true
                         });
                       }}
                     />
+                    {values.assistants_info.supports_file_upload && (
+                      <TextFormField
+                        name="assistants_info.allowed_file_size"
+                        tooltip="Allowed file size in MB"
+                        label="Max File Size (MB)"
+                        onChange={(e:React.ChangeEvent<HTMLInputElement>)=> {
+                          updateAssistantInfo({
+                            key: 'allowed_file_size', 
+                            value: e.target.value
+                          });
+                        }}
+                        placeholder="eg., 10"
+                      />
+                    )}
                     <BooleanFormField
                       name="assistants_info.supports_temperature_dialog"
                       label="Enable Temperature"
                       noPadding
                       onChange={() => {
-                        updateAssitantInfo({
+                        updateAssistantInfo({
                           key: 'supports_temperature_dialog', 
                           value: values.assistants_info.supports_temperature_dialog,
                           isToggle: true
@@ -1070,7 +1067,7 @@ export function AssistantEditor({
                       label="Support Arabic"
                       noPadding
                       onChange={() => {
-                        updateAssitantInfo({
+                        updateAssistantInfo({
                           key: 'is_arabic', 
                           value: values.assistants_info.is_arabic,
                           isToggle: true
@@ -1082,7 +1079,7 @@ export function AssistantEditor({
                       label="Enable Recommendation"
                       noPadding
                       onChange={() => {
-                        updateAssitantInfo({
+                        updateAssistantInfo({
                           key: 'is_recommendation_supported', 
                           value: values.assistants_info.is_recommendation_supported,
                           isToggle: true
@@ -1097,7 +1094,7 @@ export function AssistantEditor({
                           tooltip="Recommendation System Prompt."
                           label="Recommendation System Prompt"
                           onChange={(e:React.ChangeEvent<HTMLInputElement>)=> {
-                            updateAssitantInfo({
+                            updateAssistantInfo({
                               key: 'recommendation_prompt', 
                               value: e.target.value,
                               subKey: 'system'
@@ -1111,7 +1108,7 @@ export function AssistantEditor({
                             tooltip="Recommendation Task Prompt."
                             label="Recommendation Task Prompt"
                             onChange={(e:React.ChangeEvent<HTMLInputElement>)=> {
-                              updateAssitantInfo({
+                              updateAssistantInfo({
                                 key: 'recommendation_prompt', 
                                 value: e.target.value,
                                 subKey: 'task'
@@ -1126,7 +1123,7 @@ export function AssistantEditor({
                       tooltip="Used to set placeholder message for chatbox."
                       label="Placeholder Message"
                       onChange={(e:React.ChangeEvent<HTMLInputElement>)=> {
-                        updateAssitantInfo({
+                        updateAssistantInfo({
                           key: 'custom_message_water_mark', 
                           value: e.target.value,
                         });
@@ -1136,9 +1133,18 @@ export function AssistantEditor({
                     
                   </div>
                   <div className="mb-6">
+                    <div className="hidden">
+                      {/* This Hidden Field is nessarry for image url reference to keep as part Formik data set */}
+                      <TextFormField
+                        name="assistants_info.image_url"
+                        label="Icon URL"
+                      />
+                    </div>
+                    
                     <IconSelector defaultIcon={assistantInfo.image_url} onSelect={(selectedIcon: string)=> {
-                      setAssistantInfo((prevState: PluginInfo)=> {
-                        return {...prevState, "image_url": selectedIcon}
+                      updateAssistantInfo({
+                        key: 'image_url', 
+                        value: selectedIcon
                       });
                     }} />
                   </div>

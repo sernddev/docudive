@@ -48,6 +48,7 @@ export interface PluginInfo{
   image_url?: string;
   plugin_tags?: string[];
   supports_file_upload?: boolean;
+  allowed_file_size?: number;
   supports_temperature_dialog?: boolean;
   custom_message_water_mark?: string;
   is_recommendation_supported?: boolean;

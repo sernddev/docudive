@@ -70,7 +70,7 @@ import { orderAssistantsForUser } from "@/lib/assistants/orderAssistants";
 import { ChatPopup } from "./ChatPopup";
 import { ChatBanner } from "./ChatBanner";
 import { TbLayoutSidebarRightExpand } from "react-icons/tb";
-import { SIDEBAR_WIDTH_CONST } from "@/lib/constants";
+import { getDefaultAssistantIcon, SIDEBAR_WIDTH_CONST } from "@/lib/constants";
 
 import ResizableSection from "@/components/resizable/ResizableSection";
 import { fetchAssistantInfo } from "@/lib/assistants/fetchAssistantInfo";
@@ -1053,6 +1053,18 @@ export function ChatPage({
     const imageFiles = acceptedFiles.filter((file) =>
       file.type.startsWith("image/")
     );
+    // File size in MB
+    const acceptedFileSize = assistantInfo.allowed_file_size || 10;
+    if(
+      acceptedFiles.some((file: File)=> (file.size / (1024 * 1024)) > acceptedFileSize)
+    ) {
+      setPopup({
+        type: "error",
+        message:
+          `The file size exceed the limit, allowed max file size ${acceptedFileSize} MB.`,
+      });
+      return;
+    }
     if (imageFiles.length > 0 && !llmAcceptsImages) {
       setPopup({
         type: "error",
@@ -1156,7 +1168,7 @@ export function ChatPage({
       setEditingRetrievalEnabled(false);
     }
   };
-  
+
   return (
     <>
       <HealthCheckBanner />
@@ -1293,6 +1305,7 @@ export function ChatPage({
                           <ChatIntro
                             availableSources={finalAvailableSources}
                             selectedPersona={livePersona}
+                            iconURL={assistantInfo.image_url || getDefaultAssistantIcon()}
                           />
                         )}
 
@@ -1434,7 +1447,6 @@ export function ChatPage({
                                       ? undefined
                                       : (content) =>
                                       {
-                                        console.log(content);
                                         sendEmailToDraft(content)
                                       }
                                   }
