@@ -140,7 +140,11 @@ export const AIMessage = ({
     custom_message_water_mark: "",    
     is_recommendation_supported: false,
     is_arabic: false,
-    recommendation_prompt: "",
+    allowed_file_size: 10,
+    recommendation_prompt: {
+      system: "",
+      task: ""
+    },
     is_favorite: false});
   useEffect(() => {
     Prism.highlightAll();
