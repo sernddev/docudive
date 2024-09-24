@@ -53,7 +53,9 @@ const iconMapping = process.env.NEXT_PUBLIC_ASSISTANTS_ICON_MAPPING
 
 // Export a function to get the icon for an item
 export const getAssistantIcon = (itemId: string | number | null) => {
-  if(itemId === null) return '/svgs/icon-chat.svg';
+  if(itemId === null) return getDefaultAssistantIcon();
 
-  return iconMapping[itemId] || '/svgs/icon-chat.svg';
+  return iconMapping[itemId] || getDefaultAssistantIcon();
 };
+
+export const getDefaultAssistantIcon = ()=> '/svgs/icon-chat.svg';

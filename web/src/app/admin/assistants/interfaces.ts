@@ -40,15 +40,26 @@ export interface Persona {
   users: MinimalUserSnapshot[];
   groups: number[];
 }
-
+export interface RecommendationPrompt {
+  system: string,
+  task: string
+}
 export interface PluginInfo{
   image_url?: string;
   plugin_tags?: string[];
   supports_file_upload?: boolean;
+  allowed_file_size?: number;
   supports_temperature_dialog?: boolean;
   custom_message_water_mark?: string;
   is_recommendation_supported?: boolean;
   is_favorite?:boolean;
-  recommendation_prompt?: string;
+  recommendation_prompt?: RecommendationPrompt;
   is_arabic?:boolean;
+}
+
+export interface UpdatePluginInfo {
+  key: string;
+  value: any;
+  isToggle?: boolean;
+  subKey?: string;
 }

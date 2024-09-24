@@ -111,7 +111,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ../../backend:/code
-      - ../../web/public:/icons
+      - ../../web/public/icons:/icons
       - /elk/imageserver/web/images:/images
     logging:
       driver: json-file
