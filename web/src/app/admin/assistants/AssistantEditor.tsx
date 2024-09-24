@@ -45,7 +45,6 @@ import {
   TooltipTrigger,
 } from "@radix-ui/react-tooltip";
 import IconSelector from "./IconSelector";
-import { fetchAssistantInfo } from "@/lib/assistants/fetchAssistantInfo"
 
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "SearchTool");
@@ -1141,7 +1140,7 @@ export function AssistantEditor({
                       />
                     </div>
                     
-                    <IconSelector defaultIcon={assistantInfo.image_url} onSelect={(selectedIcon: string)=> {
+                    <IconSelector defaultIcon={assistantInfo?.image_url || ""} onSelect={(selectedIcon: string)=> {
                       updateAssistantInfo({
                         key: 'image_url', 
                         value: selectedIcon
