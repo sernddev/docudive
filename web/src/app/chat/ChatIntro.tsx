@@ -4,8 +4,6 @@ import { Persona } from "../admin/assistants/interfaces";
 import { Divider } from "@tremor/react";
 import { FiBookmark, FiInfo } from "react-icons/fi";
 import { HoverPopup } from "@/components/HoverPopup";
-import { getAssistantIcon } from "@/lib/constants";
-import { useIcon } from "@/lib/hooks";
 
 export function ChatIntro({
   availableSources,
