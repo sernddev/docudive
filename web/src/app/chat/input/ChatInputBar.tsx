@@ -346,7 +346,7 @@ export function ChatInputBar({
                 h-14
               `}
               autoFocus
-              style={{ scrollbarWidth: "thin" }}
+              style={{ scrollbarWidth: "thin", direction: assistantInfo.is_arabic ? "rtl" : "ltr"}}
               role="textarea"
               aria-multiline
               placeholder= {assistantInfo.custom_message_water_mark || "Send a message..."} 
