@@ -70,7 +70,7 @@ import { orderAssistantsForUser } from "@/lib/assistants/orderAssistants";
 import { ChatPopup } from "./ChatPopup";
 import { ChatBanner } from "./ChatBanner";
 import { TbLayoutSidebarRightExpand } from "react-icons/tb";
-import { getDefaultAssistantIcon, SIDEBAR_WIDTH_CONST } from "@/lib/constants";
+import { DEFAULT_ASSISTANT_INFO, getDefaultAssistantIcon, SIDEBAR_WIDTH_CONST } from "@/lib/constants";
 
 import ResizableSection from "@/components/resizable/ResizableSection";
 import { fetchAssistantInfo } from "@/lib/assistants/fetchAssistantInfo";
@@ -421,13 +421,7 @@ export function ChatPage({
   // just choose a conservative default, this will be updated in the
   // background on initial load / on persona change
   const [maxTokens, setMaxTokens] = useState<number>(4096);
-  const [assistantInfo, setAssistantInfo] = useState<PluginInfo>({
-    supports_file_upload: false,
-    supports_temperature_dialog: false,
-    custom_message_water_mark: "",    
-    is_recommendation_supported: false,
-    is_arabic: false
-  });
+  const [assistantInfo, setAssistantInfo] = useState<PluginInfo>(DEFAULT_ASSISTANT_INFO);
   // fetch # of allowed document tokens for the selected Persona
   useEffect(() => {
     async function fetchMaxTokens() {
@@ -441,8 +435,11 @@ export function ChatPage({
     }
     const fetchData = async ()=> {
       const response = await fetchAssistantInfo(livePersona.id);
-      if(Object.keys(response).length) {
+      
+      if(response && Object.keys(response).length) {
         setAssistantInfo(response);
+      } else {
+        setAssistantInfo(DEFAULT_ASSISTANT_INFO);
       }
     }
     fetchData();

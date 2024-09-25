@@ -59,3 +59,19 @@ export const getAssistantIcon = (itemId: string | number | null) => {
 };
 
 export const getDefaultAssistantIcon = ()=> '/svgs/icon-chat.svg';
+
+export const DEFAULT_ASSISTANT_INFO = {
+  image_url: "",
+  plugin_tags: [],
+  supports_file_upload: false,
+  allowed_file_size: 10,
+  supports_temperature_dialog: false,
+  custom_message_water_mark: "",    
+  is_recommendation_supported: false,
+  is_arabic: false,
+  recommendation_prompt: {
+    system: "",
+    task: ""
+  },
+  is_favorite: false
+};
