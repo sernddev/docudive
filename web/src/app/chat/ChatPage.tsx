@@ -427,7 +427,7 @@ export function ChatPage({
     fetchAssistantInfo
   );
   const assistantInfo = assistantInfoError && !assistantInfoData ? DEFAULT_ASSISTANT_INFO: assistantInfoData;
- 
+
   // fetch # of allowed document tokens for the selected Persona
   useEffect(() => {
     async function fetchMaxTokens() {
@@ -461,7 +461,7 @@ export function ChatPage({
         "Content-Type": "application/json",
       }
     });
-    
+
     if (response.ok) {
       setPopup({
         message: `Email sent to ${user?.email} successfully!`,
@@ -478,7 +478,7 @@ export function ChatPage({
   };
 
   function getSubject(email_content: string) {
-    const match = email_content.match(SUBJECT_REGEX);    
+    const match = email_content.match(SUBJECT_REGEX);
     return match ? match[2] : 'Email from ALYAH';
   }
 
@@ -486,10 +486,10 @@ export function ChatPage({
     const subject = encodeURIComponent(getSubject(content));
     const messageWithoutSubject = content.replace(SUBJECT_REGEX, '');
     const parsedContent = encodeURIComponent(messageWithoutSubject.replace(/^\s+|\s+$/g, ''));
-    
+
     const mailtoLink = `mailto:${user?.email}?subject=${subject}&body=${parsedContent}`;
     if (mailtoLink.length <= 2048){
-      window.location.href = mailtoLink;        
+      window.location.href = mailtoLink;
     }
     else{
       setPopup({
@@ -497,7 +497,7 @@ export function ChatPage({
           "Due to email size restrictions, we couldn't create a draft. Please send it to your inbox",
         type: "error",
       });
-    }    
+    }
   };
 
   const [sharingModalVisible, setSharingModalVisible] =
@@ -1100,7 +1100,7 @@ export function ChatPage({
         assistantId = assistantId && parseInt(assistantId);
         const personaId = selectedAssistant?.id || existingChatSessionPersonaId || assistantId;
         if(assistantInfo?.is_recommendation_supported && files.length && personaId) {
-          getRecommnededQuestions(files[0].id, personaId).then((response: string[])=> {
+          getRecommnededQuestions(files[0].id, files[0].name || "", personaId).then((response: string[])=> {
             setQuestions(response);
           })
         }
@@ -1167,7 +1167,7 @@ export function ChatPage({
       <HealthCheckBanner />
       <InstantSSRAutoRefresh />
 
-      {/* ChatPopup is a custom popup that displays a admin-specified message on initial user visit. 
+      {/* ChatPopup is a custom popup that displays a admin-specified message on initial user visit.
       Only used in the EE version of the app. */}
       <ChatPopup />
 
@@ -1244,7 +1244,7 @@ export function ChatPage({
                       className={`w-full h-full flex flex-col overflow-y-auto overflow-x-hidden relative`}
                       ref={scrollableDivRef}
                     >
-                      {/* ChatBanner is a custom banner that displays a admin-specified message at 
+                      {/* ChatBanner is a custom banner that displays a admin-specified message at
                       the top of the chat page. Only used in the EE version of the app. */}
                       <ChatBanner />
 
@@ -1609,7 +1609,7 @@ export function ChatPage({
                                       )
                                   })}
                             </div>
-                          )}  
+                          )}
 
                         {/* Some padding at the bottom so the search bar has space at the bottom to not cover the last message*/}
                         <div ref={endPaddingRef} className=" h-[95px]" />
@@ -1653,11 +1653,11 @@ export function ChatPage({
                               )}
                             </div>
                           )}
-                          
+
                         <div ref={endDivRef} />
                       </div>
                     </div>
-                    
+
                     <div
                       ref={inputRef}
                       className="absolute bottom-0 z-10 w-full"
