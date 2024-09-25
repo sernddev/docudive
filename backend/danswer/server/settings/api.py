@@ -31,8 +31,6 @@ from danswer.utils.logger import setup_logger
 
 USER_INFO_KEY = "USER_INFO_"
 PLUGIN_INFO_KEY = "PLUGIN_INFO_"
-PLUGIN_TAG = "PLUGIN_TAG"
-IMAGE_URL = "IMAGE_URL"
 AVAILABLE_TAGS = "AVAILABLE_TAGS"
 
 admin_router = APIRouter(prefix="/admin/settings")

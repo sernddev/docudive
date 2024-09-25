@@ -29,12 +29,12 @@ import {
   IMAGE_GENERATION_TOOL_NAME,
   SEARCH_TOOL_NAME,
   INTERNET_SEARCH_TOOL_NAME,
+  EMAIL_PLUGIN_TOOL_NAME
 } from "../tools/constants";
 import { ToolRunDisplay } from "../tools/ToolRunningAnimation";
 import { Hoverable } from "@/components/Hoverable";
 import { DocumentPreview } from "../files/documents/DocumentPreview";
 import { InMessageImage } from "../files/images/InMessageImage";
-import { fetchAssistantInfo } from "@/lib/assistants/fetchAssistantInfo"
 import { CodeBlock } from "./CodeBlock";
 import rehypePrism from "rehype-prism-plus";
 
@@ -110,6 +110,7 @@ export const AIMessage = ({
   handleForceSearch,
   retrievalDisabled,
   currentPersona,
+  assistantInfo
 }: {
   alternativeAssistant?: Persona | null;
   currentPersona: Persona;
@@ -130,31 +131,12 @@ export const AIMessage = ({
   handleSearchQueryEdit?: (query: string) => void;
   handleForceSearch?: () => void;
   retrievalDisabled?: boolean;
+  assistantInfo: PluginInfo;
 }) => {
   const [isReady, setIsReady] = useState(false);
-  const [assistantInfo, setAssistantInfo] = useState<PluginInfo>({
-    image_url: "",
-    plugin_tags: [],
-    supports_file_upload: false,
-    supports_temperature_dialog: false,
-    custom_message_water_mark: "",    
-    is_recommendation_supported: false,
-    is_arabic: false,
-    allowed_file_size: 10,
-    recommendation_prompt: {
-      system: "",
-      task: ""
-    },
-    is_favorite: false});
   useEffect(() => {
     Prism.highlightAll();
     setIsReady(true);
-
-    fetchAssistantInfo(currentPersona.id).then((pluginInfo: PluginInfo)=> {
-      if(pluginInfo) {
-        setAssistantInfo(pluginInfo);
-      }
-    })
   }, []);
 
   // this is needed to give Prism a chance to load
@@ -421,7 +403,7 @@ export const AIMessage = ({
                 icon={FiThumbsDown}
                 onClick={() => handleFeedback("dislike")}
               />
-               <Hoverable
+              <Hoverable
                 icon={FiMail}
                 onClick={() => {
                   if(typeof sendEmailToInbox === 'function' ) { 
@@ -429,14 +411,16 @@ export const AIMessage = ({
                   }
                 }}
               />
-              <Hoverable
-                icon={FiFileText}
-                onClick={async () => {
-                  if(typeof sendEmailToDraft === 'function' ) {                    
-                    sendEmailToDraft(content.toString())
-                  }
-                }}
-              />
+              {currentPersona?.tools[0]?.name === EMAIL_PLUGIN_TOOL_NAME &&
+                <Hoverable
+                  icon={FiFileText}
+                  onClick={async () => {
+                    if(typeof sendEmailToDraft === 'function' ) {                    
+                      sendEmailToDraft(content.toString())
+                    }
+                  }}
+                />
+              }
             </div>
           )}
           </div>
@@ -479,6 +463,8 @@ export const HumanMessage = ({
   files,
   messageId,
   otherMessagesCanSwitchTo,
+  currentPersona,
+  assistantInfo,
   onEdit,
   onMessageSelection,
 }: {
@@ -486,6 +472,8 @@ export const HumanMessage = ({
   files?: FileDescriptor[];
   messageId?: number | null;
   otherMessagesCanSwitchTo?: number[];
+  currentPersona: Persona;
+  assistantInfo: PluginInfo;
   onEdit?: (editedContent: string) => void;
   onMessageSelection?: (messageId: number) => void;
 }) => {
@@ -494,7 +482,7 @@ export const HumanMessage = ({
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(content);
-
+  
   useEffect(() => {
     if (!isEditing) {
       setEditedContent(content);
@@ -540,7 +528,8 @@ export const HumanMessage = ({
             <div className="font-bold text-emphasis ml-2 my-auto">You</div>
           </div>
           <div className="mx-auto mt-1 ml-8 w-searchbar-xs 2xl:w-searchbar-sm 3xl:w-searchbar-default flex flex-wrap">
-            <div className="w-message-xs 2xl:w-message-sm 3xl:w-message-default break-words">
+            <div className="w-message-xs 2xl:w-message-sm 3xl:w-message-default break-words"
+              style={{ direction: assistantInfo.is_arabic ? "rtl" : "ltr" }}>
               <FileDisplay files={files || []} />
 
               {isEditing ? (

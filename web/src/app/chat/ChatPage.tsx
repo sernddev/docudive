@@ -78,7 +78,7 @@ import { fetchAssistantInfo } from "@/lib/assistants/fetchAssistantInfo";
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
 const SYSTEM_MESSAGE_ID = -3;
-const SUBJECT_REGEX = /[\*]*(العنوان|Subject)[\*]*\s*:\s*(.*)/
+const SUBJECT_REGEX = /([\*]*العنوان[\*]*|[\*]*Subject[\*]*)\s*:\s*(.*)/
 
 export function ChatPage({
   documentSidebarInitialWidth,
@@ -422,12 +422,19 @@ export function ChatPage({
   // background on initial load / on persona change
   const [maxTokens, setMaxTokens] = useState<number>(4096);
   const [assistantInfo, setAssistantInfo] = useState<PluginInfo>({
+    image_url: "",
+    plugin_tags: [],
     supports_file_upload: false,
     supports_temperature_dialog: false,
     custom_message_water_mark: "",    
     is_recommendation_supported: false,
-    is_arabic: false
-  });
+    is_arabic: false,
+    allowed_file_size: 10,
+    recommendation_prompt: {
+      system: "",
+      task: ""
+    },
+    is_favorite: false});
   // fetch # of allowed document tokens for the selected Persona
   useEffect(() => {
     async function fetchMaxTokens() {
@@ -1309,7 +1316,7 @@ export function ChatPage({
                           />
                         )}
 
-                      <div
+                      <div style={{ direction: assistantInfo.is_arabic ? "rtl" : "ltr"}}
                         className={
                           "mt-4 pt-12 sm:pt-0 mx-8" +
                           (hasPerformedInitialScroll ? "" : " invisible")
@@ -1331,6 +1338,8 @@ export function ChatPage({
                                   otherMessagesCanSwitchTo={
                                     parentMessage?.childrenMessageIds || []
                                   }
+                                  currentPersona={livePersona}
+                                  assistantInfo={assistantInfo}
                                   onEdit={(editedContent) => {
                                     const parentMessageId =
                                       message.parentMessageId!;
@@ -1526,6 +1535,7 @@ export function ChatPage({
                                         )
                                       : !retrievalEnabled
                                   }
+                                  assistantInfo={assistantInfo}
                                 />
                               </div>
                             );
@@ -1536,6 +1546,7 @@ export function ChatPage({
                                   currentPersona={livePersona}
                                   messageId={message.messageId}
                                   personaName={livePersona.name}
+                                  assistantInfo={assistantInfo}
                                   content={
                                     <p className="text-red-700 text-sm my-auto">
                                       {message.message}
@@ -1561,6 +1572,7 @@ export function ChatPage({
                                 }
                                 messageId={null}
                                 personaName={livePersona.name}
+                                assistantInfo={assistantInfo}
                                 content={
                                   <div className="text-sm my-auto">
                                     <ThreeDots
