@@ -73,10 +73,10 @@ export const ChatSidebar = ({
       >
         <div className="pt-6 flex">
           <Link
-            className="ml-4 w-full"
+            className="w-full"
             href="/dashboard"
           >
-            <div className="flex w-full">
+            <div className="flex w-full justify-center">
               <Logo isFullSize={true} width={170} className="mr-1 my-auto" />
             </div>
           </Link>

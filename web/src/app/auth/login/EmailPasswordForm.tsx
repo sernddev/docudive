@@ -70,18 +70,19 @@ export function EmailPasswordForm({
               
               if (isSignup)
               {
-                  const response = await fetch("/api/settings/user_info", {
-                  method: "PUT",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    key: values.email,
-                    value: values.name,
-                    }),
-                  });
-                }
+                const response = await fetch("/api/settings/user_info", {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  key: values.email,
+                  value: values.name,
+                  }),
+                });
+              }
               router.push("/");
+              window.location.reload();
             }
           } else {
             setIsWorking(false);

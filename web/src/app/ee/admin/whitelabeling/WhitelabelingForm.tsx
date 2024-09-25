@@ -94,8 +94,8 @@ export function WhitelabelingForm() {
             <TextFormField
               label="Application Name"
               name="application_name"
-              subtext={`The custom name you are giving Spectra for your organization. This will replace 'Danswer' everywhere in the UI.`}
-              placeholder="Custom name which will replace 'Danswer'"
+              subtext={`The custom name you are giving Spectra for your organization. This will replace 'SPECTRA' everywhere in the UI.`}
+              placeholder="Custom name which will replace 'SPECTRA'"
               disabled={isSubmitting}
             />
 
@@ -135,7 +135,7 @@ export function WhitelabelingForm() {
               </div>
             ) : (
               <SubLabel>
-                Specify your own logo to replace the standard Danswer logo.
+                Specify your own logo to replace the standard SPECTRA logo.
               </SubLabel>
             )}
 

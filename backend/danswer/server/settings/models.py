@@ -22,7 +22,8 @@ class PluginInfoStore(BaseModel):
     supports_temperature_dialog: bool = True
     custom_message_water_mark: str = "Send a message"
     is_recommendation_supported: bool = False
-    recommendation_prompt: str | None = None
+    recommendation_prompt: dict[str, str] | None = None
+    allowed_file_size: int | None = None
     is_favorite: bool = False
     is_arabic: bool = False
 

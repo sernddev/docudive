@@ -31,18 +31,11 @@ from danswer.utils.logger import setup_logger
 
 USER_INFO_KEY = "USER_INFO_"
 PLUGIN_INFO_KEY = "PLUGIN_INFO_"
-PLUGIN_TAG = "PLUGIN_TAG"
-IMAGE_URL = "IMAGE_URL"
 AVAILABLE_TAGS = "AVAILABLE_TAGS"
 
 admin_router = APIRouter(prefix="/admin/settings")
 basic_router = APIRouter(prefix="/settings")
 logger = setup_logger()
-
-
-class PluginInfoEnum(enum.Enum):
-    IMAGE_URL = 1
-    PLUGIN_TAGS = 2
 
 
 @admin_router.put("")
@@ -188,7 +181,7 @@ def list_image_urls(directory_path: str):
     try:
         for root, _, files in os.walk(directory_path):
             for file in files:
-                if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
+                if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.svg')):
                     file_path = os.path.join(root, file)
                     relative_path = os.path.relpath(file_path, directory_path)
                     image_url = IMAGE_SERVER_BASE_URL + relative_path.replace("\\", "/")

@@ -53,7 +53,25 @@ const iconMapping = process.env.NEXT_PUBLIC_ASSISTANTS_ICON_MAPPING
 
 // Export a function to get the icon for an item
 export const getAssistantIcon = (itemId: string | number | null) => {
-  if(itemId === null) return '/svgs/icon-chat.svg';
+  if(itemId === null) return getDefaultAssistantIcon();
 
-  return iconMapping[itemId] || '/svgs/icon-chat.svg';
+  return iconMapping[itemId] || getDefaultAssistantIcon();
+};
+
+export const getDefaultAssistantIcon = ()=> '/svgs/icon-chat.svg';
+
+export const DEFAULT_ASSISTANT_INFO = {
+  image_url: "",
+  plugin_tags: [],
+  supports_file_upload: false,
+  allowed_file_size: 10,
+  supports_temperature_dialog: false,
+  custom_message_water_mark: "",    
+  is_recommendation_supported: false,
+  is_arabic: false,
+  recommendation_prompt: {
+    system: "",
+    task: ""
+  },
+  is_favorite: false
 };

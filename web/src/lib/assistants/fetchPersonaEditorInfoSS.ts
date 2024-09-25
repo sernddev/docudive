@@ -1,4 +1,4 @@
-import { Persona } from "@/app/admin/assistants/interfaces";
+import { Persona, PluginInfo } from "@/app/admin/assistants/interfaces";
 import { CCPairBasicInfo, DocumentSet, User } from "../types";
 import { getCurrentUserSS } from "../userSS";
 import { fetchSS } from "../utilsSS";
@@ -25,6 +25,7 @@ export async function fetchAssistantEditorInfoSS(
         user: User | null;
         existingPersona: Persona | null;
         tools: ToolSnapshot[];
+        assistantInfo: PluginInfo | null
       },
       null,
     ]
@@ -41,6 +42,7 @@ export async function fetchAssistantEditorInfoSS(
   ];
   if (personaId) {
     tasks.push(fetchSS(`/persona/${personaId}`));
+    tasks.push(fetchSS(`/settings/plugin_info/${personaId}`))
   } else {
     tasks.push((async () => null)());
   }
@@ -52,6 +54,7 @@ export async function fetchAssistantEditorInfoSS(
     user,
     toolsResponse,
     personaResponse,
+    assitantsInfoResponse
   ] = (await Promise.all(tasks)) as [
     Response,
     Response,
@@ -59,6 +62,7 @@ export async function fetchAssistantEditorInfoSS(
     User | null,
     ToolSnapshot[] | null,
     Response | null,
+    Response | null
   ];
 
   if (!ccPairsInfoResponse.ok) {
@@ -111,7 +115,8 @@ export async function fetchAssistantEditorInfoSS(
   const existingPersona = personaResponse
     ? ((await personaResponse.json()) as Persona)
     : null;
-
+  const assistantInfo = assitantsInfoResponse?.ok? ((await assitantsInfoResponse.json()) as PluginInfo) : null;
+  
   return [
     {
       ccPairs,
@@ -120,6 +125,7 @@ export async function fetchAssistantEditorInfoSS(
       user,
       existingPersona,
       tools: toolsResponse,
+      assistantInfo
     },
     null,
   ];

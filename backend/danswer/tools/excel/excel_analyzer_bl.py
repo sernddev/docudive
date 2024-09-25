@@ -137,6 +137,7 @@ def eval_expres(dframe, hint, exp):
         return EvalResult(hint, error=str(ex))
 
 
+
 def eval_expres_advanced(dframe, hint, exp):
     print("====" * 20)
     e = eval(exp)
@@ -172,7 +173,24 @@ def eval_expres_advanced(dframe, hint, exp):
         return e
 
 
+def dataframe_to_markdown_bold_header(df: pd.DataFrame):
+        """
+        Convert a Pandas DataFrame into a Markdown table format with bold headers.
 
+        :param df: Pandas DataFrame
+        :return: String in Markdown table format with bold headers
+        """
+        # Create the header row with bold headers
+        header = '| ' + ' | '.join(f"**{col}**" for col in df.columns) + ' |'
+        separator = '| ' + ' | '.join(['---'] * len(df.columns)) + ' |'
+
+        # Create the data rows
+        rows = df.apply(lambda row: '| ' + ' | '.join(map(str, row)) + ' |', axis=1).tolist()
+
+        # Combine everything into a markdown table
+        markdown_table = '\n'.join([header, separator] + rows)
+
+        return markdown_table
 
 
 

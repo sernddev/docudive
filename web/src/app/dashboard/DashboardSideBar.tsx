@@ -3,6 +3,7 @@ import Link from "next/link";
 import React from "react";
 import { FaBrain } from "react-icons/fa";
 import SideBarHeader from "./SideBarHeader";
+import Version from "@/components/Version";
 
 export default function DashboardSideBar() {
 
@@ -17,12 +18,16 @@ export default function DashboardSideBar() {
                 flex 
                 flex-col 
                 h-lvh
-                transition-transform">
+                transition-transform relative">
             {/* Logo Section */}
             <div className="mx-4 my-6">
                 <SideBarHeader />
             </div>
             {/* Navigation Links */}
+            {/* Footer */}
+            <div className="absolute bottom-3 w-full text-center mx-auto">
+                <Version />
+            </div>
         </div>
     )
 }

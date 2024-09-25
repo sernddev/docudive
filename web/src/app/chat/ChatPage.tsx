@@ -15,7 +15,7 @@ import {
   ToolCallMetadata,
 } from "./interfaces";
 import { ChatSidebar } from "./sessionSidebar/ChatSidebar";
-import { Persona } from "../admin/assistants/interfaces";
+import { Persona, PluginInfo } from "../admin/assistants/interfaces";
 import { HealthCheckBanner } from "@/components/health/healthcheck";
 import { InstantSSRAutoRefresh } from "@/components/SSRAutoRefresh";
 import {
@@ -70,14 +70,16 @@ import { orderAssistantsForUser } from "@/lib/assistants/orderAssistants";
 import { ChatPopup } from "./ChatPopup";
 import { ChatBanner } from "./ChatBanner";
 import { TbLayoutSidebarRightExpand } from "react-icons/tb";
-import { SIDEBAR_WIDTH_CONST } from "@/lib/constants";
+import { DEFAULT_ASSISTANT_INFO, getDefaultAssistantIcon, SIDEBAR_WIDTH_CONST } from "@/lib/constants";
 
 import ResizableSection from "@/components/resizable/ResizableSection";
+import { fetchAssistantInfo } from "@/lib/assistants/fetchAssistantInfo";
+import useSWR from "swr";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
 const SYSTEM_MESSAGE_ID = -3;
-const SUBJECT_REGEX = /[\*]*(العنوان|Subject)[\*]*\s*:\s*(.*)/
+const SUBJECT_REGEX = /([\*]*العنوان[\*]*|[\*]*Subject[\*]*)\s*:\s*(.*)/
 
 export function ChatPage({
   documentSidebarInitialWidth,
@@ -420,7 +422,12 @@ export function ChatPage({
   // just choose a conservative default, this will be updated in the
   // background on initial load / on persona change
   const [maxTokens, setMaxTokens] = useState<number>(4096);
-
+  const { data: assistantInfoData, error: assistantInfoError } = useSWR(
+    livePersona.id ? livePersona.id.toString() : null,
+    fetchAssistantInfo
+  );
+  const assistantInfo = assistantInfoError && !assistantInfoData ? DEFAULT_ASSISTANT_INFO: assistantInfoData;
+ 
   // fetch # of allowed document tokens for the selected Persona
   useEffect(() => {
     async function fetchMaxTokens() {
@@ -432,7 +439,6 @@ export function ChatPage({
         setMaxTokens(maxTokens);
       }
     }
-
     fetchMaxTokens();
   }, [livePersona]);
 
@@ -480,8 +486,18 @@ export function ChatPage({
     const subject = encodeURIComponent(getSubject(content));
     const messageWithoutSubject = content.replace(SUBJECT_REGEX, '');
     const parsedContent = encodeURIComponent(messageWithoutSubject.replace(/^\s+|\s+$/g, ''));
+    
     const mailtoLink = `mailto:${user?.email}?subject=${subject}&body=${parsedContent}`;
-    window.location.href = mailtoLink;
+    if (mailtoLink.length <= 2048){
+      window.location.href = mailtoLink;        
+    }
+    else{
+      setPopup({
+        message:
+          "Due to email size restrictions, we couldn't create a draft. Please send it to your inbox",
+        type: "error",
+      });
+    }    
   };
 
   const [sharingModalVisible, setSharingModalVisible] =
@@ -1030,6 +1046,18 @@ export function ChatPage({
     const imageFiles = acceptedFiles.filter((file) =>
       file.type.startsWith("image/")
     );
+    // File size in MB
+    const acceptedFileSize = assistantInfo?.allowed_file_size || 10;
+    if(
+      acceptedFiles.some((file: File)=> (file.size / (1024 * 1024)) > acceptedFileSize)
+    ) {
+      setPopup({
+        type: "error",
+        message:
+          `The file size exceed the limit, allowed max file size ${acceptedFileSize} MB.`,
+      });
+      return;
+    }
     if (imageFiles.length > 0 && !llmAcceptsImages) {
       setPopup({
         type: "error",
@@ -1071,7 +1099,7 @@ export function ChatPage({
         let assistantId:any = searchParams.get("assistantId");
         assistantId = assistantId && parseInt(assistantId);
         const personaId = selectedAssistant?.id || existingChatSessionPersonaId || assistantId;
-        if(files.length && personaId) {
+        if(assistantInfo?.is_recommendation_supported && files.length && personaId) {
           getRecommnededQuestions(files[0].id, personaId).then((response: string[])=> {
             setQuestions(response);
           })
@@ -1133,7 +1161,7 @@ export function ChatPage({
       setEditingRetrievalEnabled(false);
     }
   };
-  
+
   return (
     <>
       <HealthCheckBanner />
@@ -1270,10 +1298,11 @@ export function ChatPage({
                           <ChatIntro
                             availableSources={finalAvailableSources}
                             selectedPersona={livePersona}
+                            iconURL={assistantInfo?.image_url || getDefaultAssistantIcon()}
                           />
                         )}
 
-                      <div
+                      <div style={{ direction: assistantInfo?.is_arabic ? "rtl" : "ltr"}}
                         className={
                           "mt-4 pt-12 sm:pt-0 mx-8" +
                           (hasPerformedInitialScroll ? "" : " invisible")
@@ -1295,6 +1324,7 @@ export function ChatPage({
                                   otherMessagesCanSwitchTo={
                                     parentMessage?.childrenMessageIds || []
                                   }
+                                  assistantInfo={assistantInfo}
                                   onEdit={(editedContent) => {
                                     const parentMessageId =
                                       message.parentMessageId!;
@@ -1393,7 +1423,7 @@ export function ChatPage({
                                       : (feedbackType) =>
                                           setCurrentFeedback([
                                             feedbackType,
-                                            message.messageId as number,
+                                            message.messageId as number
                                           ])
                                   }
                                   sendEmailToInbox={
@@ -1402,7 +1432,7 @@ export function ChatPage({
                                       ? undefined
                                       : () =>
                                         sendEmailToInbox(
-                                            message.messageId as number,
+                                            message.messageId as number
                                           )
                                   }
                                   sendEmailToDraft={
@@ -1411,7 +1441,6 @@ export function ChatPage({
                                       ? undefined
                                       : (content) =>
                                       {
-                                        console.log(content);
                                         sendEmailToDraft(content)
                                       }
                                   }
@@ -1491,6 +1520,7 @@ export function ChatPage({
                                         )
                                       : !retrievalEnabled
                                   }
+                                  assistantInfo={assistantInfo}
                                 />
                               </div>
                             );
@@ -1501,6 +1531,7 @@ export function ChatPage({
                                   currentPersona={livePersona}
                                   messageId={message.messageId}
                                   personaName={livePersona.name}
+                                  assistantInfo={assistantInfo}
                                   content={
                                     <p className="text-red-700 text-sm my-auto">
                                       {message.message}
@@ -1526,6 +1557,7 @@ export function ChatPage({
                                 }
                                 messageId={null}
                                 personaName={livePersona.name}
+                                assistantInfo={assistantInfo}
                                 content={
                                   <div className="text-sm my-auto">
                                     <ThreeDots
@@ -1666,6 +1698,7 @@ export function ChatPage({
                           handleFileUpload={handleImageUpload}
                           setConfigModalActiveTab={setConfigModalActiveTab}
                           textAreaRef={textAreaRef}
+                          assistantInfo={assistantInfo || DEFAULT_ASSISTANT_INFO}
                         />
                       </div>
                     </div>
