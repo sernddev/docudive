@@ -48,7 +48,6 @@ import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { InternetSearchIcon } from "@/components/InternetSearchIcon";
 import MarkdownImage from "./MarkdownImage";
 
-
 const TOOLS_WITH_CUSTOM_HANDLING = [
   SEARCH_TOOL_NAME,
   INTERNET_SEARCH_TOOL_NAME,
@@ -131,7 +130,7 @@ export const AIMessage = ({
   handleSearchQueryEdit?: (query: string) => void;
   handleForceSearch?: () => void;
   retrievalDisabled?: boolean;
-  assistantInfo: PluginInfo;
+  assistantInfo?: PluginInfo;
 }) => {
   const [isReady, setIsReady] = useState(false);
   useEffect(() => {
@@ -194,7 +193,7 @@ export const AIMessage = ({
                 assistant={alternativeAssistant || currentPersona}
               />
 
-              <div className="font-bold text-emphasis ml-2 my-auto">
+              <div className={`font-bold text-emphasis ${assistantInfo?.is_arabic ? "mr-2" : "ml-2"} my-auto`}>
                 {alternativeAssistant
                   ? alternativeAssistant.name
                   : personaName || "Spectra"}
@@ -217,8 +216,7 @@ export const AIMessage = ({
                 )}
             </div>
 
-            <div className="w-message-xs 2xl:w-message-sm 3xl:w-message-default break-words mt-1 ml-8"
-              style={{ direction: assistantInfo.is_arabic ? "rtl" : "ltr" }}>
+            <div className={`w-message-xs 2xl:w-message-sm 3xl:w-message-default break-words mt-1 ${assistantInfo?.is_arabic ? "rtl mr-8 " : "ltr ml-8"}`}>           
               {(!toolCall || toolCall.tool_name === SEARCH_TOOL_NAME) &&
                 danswerSearchToolEnabledForPersona && (
                   <>
@@ -393,7 +391,7 @@ export const AIMessage = ({
               )}
             </div>
             {handleFeedback && (
-            <div className="flex flex-col md:flex-row gap-x-0.5 ml-8 mt-1.5">
+            <div className={`flex flex-col md:flex-row gap-x-0.5 ${assistantInfo?.is_arabic? "mr-8":"ml-8"} mt-1.5`}>
               <CopyButton content={content.toString()} />
               <Hoverable
                 icon={FiThumbsUp}
@@ -473,7 +471,7 @@ export const HumanMessage = ({
   messageId?: number | null;
   otherMessagesCanSwitchTo?: number[];
   currentPersona: Persona;
-  assistantInfo: PluginInfo;
+  assistantInfo?: PluginInfo;
   onEdit?: (editedContent: string) => void;
   onMessageSelection?: (messageId: number) => void;
 }) => {
@@ -524,12 +522,10 @@ export const HumanMessage = ({
                 <FiUser size={16} className="my-auto mx-auto" />
               </div>
             </div>
-
-            <div className="font-bold text-emphasis ml-2 my-auto">You</div>
+            <div className={`font-bold text-emphasis ${assistantInfo?.is_arabic ? "mr-2" : "ml-2"} my-auto`}>You</div>
           </div>
-          <div className="mx-auto mt-1 ml-8 w-searchbar-xs 2xl:w-searchbar-sm 3xl:w-searchbar-default flex flex-wrap">
-            <div className="w-message-xs 2xl:w-message-sm 3xl:w-message-default break-words"
-              style={{ direction: assistantInfo.is_arabic ? "rtl" : "ltr" }}>
+          <div className={`mx-auto mt-1 ${assistantInfo?.is_arabic ? "mr-8" : "ml-8"} w-searchbar-xs 2xl:w-searchbar-sm 3xl:w-searchbar-default flex flex-wrap`}>
+            <div className={`w-message-xs 2xl:w-message-sm 3xl:w-message-default break-words`}>
               <FileDisplay files={files || []} />
 
               {isEditing ? (
@@ -590,7 +586,7 @@ export const HumanMessage = ({
                         }
                       }}
                     />
-                    <div className="flex justify-end mt-2 gap-2 pr-4">
+                    <div className={`flex justify-end mt-2 gap-2 ${assistantInfo?.is_arabic? "pl-4":"pr-4"}`}>
                       <button
                         className={`
                           w-fit 
@@ -634,7 +630,7 @@ export const HumanMessage = ({
               )}
             </div>
           </div>
-          <div className="flex flex-col md:flex-row gap-x-0.5 ml-8 mt-1">
+          <div className={`flex flex-col md:flex-row gap-x-0.5 ${assistantInfo?.is_arabic? "mr-8": "ml-8"} mt-1`}>
             {currentMessageInd !== undefined &&
               onMessageSelection &&
               otherMessagesCanSwitchTo &&

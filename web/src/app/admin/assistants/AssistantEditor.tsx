@@ -45,6 +45,7 @@ import {
   TooltipTrigger,
 } from "@radix-ui/react-tooltip";
 import IconSelector from "./IconSelector";
+import { DEFAULT_ASSISTANT_INFO } from "@/lib/constants";
 
 function findSearchTool(tools: ToolSnapshot[]) {
   return tools.find((tool) => tool.in_code_tool_id === "SearchTool");
@@ -129,21 +130,7 @@ export function AssistantEditor({
   const existingPrompt = existingPersona?.prompts[0] ?? null;
 
   if(!assistantInfo) {
-    assistantInfo = {
-      image_url: "",
-      plugin_tags: [],
-      supports_file_upload: false,
-      allowed_file_size: 10,
-      supports_temperature_dialog: false,
-      custom_message_water_mark: "",    
-      is_recommendation_supported: false,
-      is_arabic: false,
-      recommendation_prompt: {
-        system: "",
-        task: ""
-      },
-      is_favorite: false
-    }
+    assistantInfo = DEFAULT_ASSISTANT_INFO
   }
 
   useEffect(() => {

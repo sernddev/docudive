@@ -27,7 +27,7 @@ export default async function Page() {
       <AdminPageTitle icon={<RobotIcon size={32} />} title="Plugins" />
 
       <Text className="mb-2">
-        Assistants are a way to build custom search/question-answering
+        Plugins are a way to build custom search/question-answering
         experiences for different use cases.
       </Text>
       <Text className="mt-2">They allow you to customize:</Text>
