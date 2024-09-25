@@ -461,7 +461,6 @@ export const HumanMessage = ({
   files,
   messageId,
   otherMessagesCanSwitchTo,
-  currentPersona,
   assistantInfo,
   onEdit,
   onMessageSelection,
@@ -470,7 +469,6 @@ export const HumanMessage = ({
   files?: FileDescriptor[];
   messageId?: number | null;
   otherMessagesCanSwitchTo?: number[];
-  currentPersona: Persona;
   assistantInfo?: PluginInfo;
   onEdit?: (editedContent: string) => void;
   onMessageSelection?: (messageId: number) => void;

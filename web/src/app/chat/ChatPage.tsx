@@ -1324,7 +1324,6 @@ export function ChatPage({
                                   otherMessagesCanSwitchTo={
                                     parentMessage?.childrenMessageIds || []
                                   }
-                                  currentPersona={livePersona}
                                   assistantInfo={assistantInfo}
                                   onEdit={(editedContent) => {
                                     const parentMessageId =
