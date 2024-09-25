@@ -17,7 +17,7 @@ export default function SideBarHeader() {
   const enterpriseSettings = combinedSettings.enterpriseSettings;
     return (
         <Link
-            className="py-3"
+            className="py-3 flex justify-center"
             href='/dashboard'
             >
             <Logo isFullSize={true} width={170}/>
