@@ -79,7 +79,7 @@ import useSWR from "swr";
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
 const SYSTEM_MESSAGE_ID = -3;
-const SUBJECT_REGEX = /[\*]*(العنوان|Subject)[\*]*\s*:\s*(.*)/
+const SUBJECT_REGEX = /([\*]*العنوان[\*]*|[\*]*Subject[\*]*)\s*:\s*(.*)/
 
 export function ChatPage({
   documentSidebarInitialWidth,
@@ -426,7 +426,7 @@ export function ChatPage({
     livePersona.id ? livePersona.id.toString() : null,
     fetchAssistantInfo
   );
-  const assistantInfo = assistantInfoError ? DEFAULT_ASSISTANT_INFO: assistantInfoData;
+  const assistantInfo = assistantInfoError && !assistantInfoData ? DEFAULT_ASSISTANT_INFO: assistantInfoData;
  
   // fetch # of allowed document tokens for the selected Persona
   useEffect(() => {
@@ -1302,7 +1302,7 @@ export function ChatPage({
                           />
                         )}
 
-                      <div
+                      <div style={{ direction: assistantInfo?.is_arabic ? "rtl" : "ltr"}}
                         className={
                           "mt-4 pt-12 sm:pt-0 mx-8" +
                           (hasPerformedInitialScroll ? "" : " invisible")
@@ -1324,6 +1324,7 @@ export function ChatPage({
                                   otherMessagesCanSwitchTo={
                                     parentMessage?.childrenMessageIds || []
                                   }
+                                  assistantInfo={assistantInfo}
                                   onEdit={(editedContent) => {
                                     const parentMessageId =
                                       message.parentMessageId!;
@@ -1530,12 +1531,12 @@ export function ChatPage({
                                   currentPersona={livePersona}
                                   messageId={message.messageId}
                                   personaName={livePersona.name}
+                                  assistantInfo={assistantInfo}
                                   content={
                                     <p className="text-red-700 text-sm my-auto">
                                       {message.message}
                                     </p>
                                   }
-                                  assistantInfo={assistantInfo}
                                 />
                               </div>
                             );
@@ -1556,6 +1557,7 @@ export function ChatPage({
                                 }
                                 messageId={null}
                                 personaName={livePersona.name}
+                                assistantInfo={assistantInfo}
                                 content={
                                   <div className="text-sm my-auto">
                                     <ThreeDots
@@ -1570,7 +1572,6 @@ export function ChatPage({
                                     />
                                   </div>
                                 }
-                                assistantInfo={assistantInfo}
                               />
                             </div>
                           )}

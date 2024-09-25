@@ -29,6 +29,7 @@ import {
   IMAGE_GENERATION_TOOL_NAME,
   SEARCH_TOOL_NAME,
   INTERNET_SEARCH_TOOL_NAME,
+  EMAIL_PLUGIN_TOOL_NAME
 } from "../tools/constants";
 import { ToolRunDisplay } from "../tools/ToolRunningAnimation";
 import { Hoverable } from "@/components/Hoverable";
@@ -46,8 +47,6 @@ import { Persona, PluginInfo } from "@/app/admin/assistants/interfaces";
 import { AssistantIcon } from "@/components/assistants/AssistantIcon";
 import { InternetSearchIcon } from "@/components/InternetSearchIcon";
 import MarkdownImage from "./MarkdownImage";
-import { DEFAULT_ASSISTANT_INFO } from "@/lib/constants";
-
 
 const TOOLS_WITH_CUSTOM_HANDLING = [
   SEARCH_TOOL_NAME,
@@ -194,7 +193,7 @@ export const AIMessage = ({
                 assistant={alternativeAssistant || currentPersona}
               />
 
-              <div className="font-bold text-emphasis ml-2 my-auto">
+              <div className={`font-bold text-emphasis ${assistantInfo?.is_arabic ? "mr-2" : "ml-2"} my-auto`}>
                 {alternativeAssistant
                   ? alternativeAssistant.name
                   : personaName || "Spectra"}
@@ -217,8 +216,7 @@ export const AIMessage = ({
                 )}
             </div>
 
-            <div className="w-message-xs 2xl:w-message-sm 3xl:w-message-default break-words mt-1 ml-8"
-              style={{ direction: assistantInfo?.is_arabic ? "rtl" : "ltr" }}>
+            <div className={`w-message-xs 2xl:w-message-sm 3xl:w-message-default break-words mt-1 ${assistantInfo?.is_arabic ? "rtl mr-8 " : "ltr ml-8"}`}>           
               {(!toolCall || toolCall.tool_name === SEARCH_TOOL_NAME) &&
                 danswerSearchToolEnabledForPersona && (
                   <>
@@ -393,7 +391,7 @@ export const AIMessage = ({
               )}
             </div>
             {handleFeedback && (
-            <div className="flex flex-col md:flex-row gap-x-0.5 ml-8 mt-1.5">
+            <div className={`flex flex-col md:flex-row gap-x-0.5 ${assistantInfo?.is_arabic? "mr-8":"ml-8"} mt-1.5`}>
               <CopyButton content={content.toString()} />
               <Hoverable
                 icon={FiThumbsUp}
@@ -403,7 +401,7 @@ export const AIMessage = ({
                 icon={FiThumbsDown}
                 onClick={() => handleFeedback("dislike")}
               />
-               <Hoverable
+              <Hoverable
                 icon={FiMail}
                 onClick={() => {
                   if(typeof sendEmailToInbox === 'function' ) { 
@@ -411,14 +409,16 @@ export const AIMessage = ({
                   }
                 }}
               />
-              <Hoverable
-                icon={FiFileText}
-                onClick={async () => {
-                  if(typeof sendEmailToDraft === 'function' ) {                    
-                    sendEmailToDraft(content.toString())
-                  }
-                }}
-              />
+              {currentPersona?.tools[0]?.name === EMAIL_PLUGIN_TOOL_NAME &&
+                <Hoverable
+                  icon={FiFileText}
+                  onClick={async () => {
+                    if(typeof sendEmailToDraft === 'function' ) {                    
+                      sendEmailToDraft(content.toString())
+                    }
+                  }}
+                />
+              }
             </div>
           )}
           </div>
@@ -461,6 +461,7 @@ export const HumanMessage = ({
   files,
   messageId,
   otherMessagesCanSwitchTo,
+  assistantInfo,
   onEdit,
   onMessageSelection,
 }: {
@@ -468,6 +469,7 @@ export const HumanMessage = ({
   files?: FileDescriptor[];
   messageId?: number | null;
   otherMessagesCanSwitchTo?: number[];
+  assistantInfo?: PluginInfo;
   onEdit?: (editedContent: string) => void;
   onMessageSelection?: (messageId: number) => void;
 }) => {
@@ -476,7 +478,7 @@ export const HumanMessage = ({
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(content);
-
+  
   useEffect(() => {
     if (!isEditing) {
       setEditedContent(content);
@@ -518,11 +520,10 @@ export const HumanMessage = ({
                 <FiUser size={16} className="my-auto mx-auto" />
               </div>
             </div>
-
-            <div className="font-bold text-emphasis ml-2 my-auto">You</div>
+            <div className={`font-bold text-emphasis ${assistantInfo?.is_arabic ? "mr-2" : "ml-2"} my-auto`}>You</div>
           </div>
-          <div className="mx-auto mt-1 ml-8 w-searchbar-xs 2xl:w-searchbar-sm 3xl:w-searchbar-default flex flex-wrap">
-            <div className="w-message-xs 2xl:w-message-sm 3xl:w-message-default break-words">
+          <div className={`mx-auto mt-1 ${assistantInfo?.is_arabic ? "mr-8" : "ml-8"} w-searchbar-xs 2xl:w-searchbar-sm 3xl:w-searchbar-default flex flex-wrap`}>
+            <div className={`w-message-xs 2xl:w-message-sm 3xl:w-message-default break-words`}>
               <FileDisplay files={files || []} />
 
               {isEditing ? (
@@ -583,7 +584,7 @@ export const HumanMessage = ({
                         }
                       }}
                     />
-                    <div className="flex justify-end mt-2 gap-2 pr-4">
+                    <div className={`flex justify-end mt-2 gap-2 ${assistantInfo?.is_arabic? "pl-4":"pr-4"}`}>
                       <button
                         className={`
                           w-fit 
@@ -627,7 +628,7 @@ export const HumanMessage = ({
               )}
             </div>
           </div>
-          <div className="flex flex-col md:flex-row gap-x-0.5 ml-8 mt-1">
+          <div className={`flex flex-col md:flex-row gap-x-0.5 ${assistantInfo?.is_arabic? "mr-8": "ml-8"} mt-1`}>
             {currentMessageInd !== undefined &&
               onMessageSelection &&
               otherMessagesCanSwitchTo &&
