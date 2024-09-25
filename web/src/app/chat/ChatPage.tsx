@@ -74,6 +74,7 @@ import { DEFAULT_ASSISTANT_INFO, getDefaultAssistantIcon, SIDEBAR_WIDTH_CONST } 
 
 import ResizableSection from "@/components/resizable/ResizableSection";
 import { fetchAssistantInfo } from "@/lib/assistants/fetchAssistantInfo";
+import useSWR from "swr";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -421,7 +422,12 @@ export function ChatPage({
   // just choose a conservative default, this will be updated in the
   // background on initial load / on persona change
   const [maxTokens, setMaxTokens] = useState<number>(4096);
-  const [assistantInfo, setAssistantInfo] = useState<PluginInfo>(DEFAULT_ASSISTANT_INFO);
+  const { data: assistantInfoData, error: assistantInfoError } = useSWR(
+    livePersona.id ? livePersona.id.toString() : null,
+    fetchAssistantInfo
+  );
+  const assistantInfo = assistantInfoError ? DEFAULT_ASSISTANT_INFO: assistantInfoData;
+ 
   // fetch # of allowed document tokens for the selected Persona
   useEffect(() => {
     async function fetchMaxTokens() {
@@ -433,16 +439,6 @@ export function ChatPage({
         setMaxTokens(maxTokens);
       }
     }
-    const fetchData = async ()=> {
-      const response = await fetchAssistantInfo(livePersona.id);
-      
-      if(response && Object.keys(response).length) {
-        setAssistantInfo(response);
-      } else {
-        setAssistantInfo(DEFAULT_ASSISTANT_INFO);
-      }
-    }
-    fetchData();
     fetchMaxTokens();
   }, [livePersona]);
 
@@ -1051,7 +1047,7 @@ export function ChatPage({
       file.type.startsWith("image/")
     );
     // File size in MB
-    const acceptedFileSize = assistantInfo.allowed_file_size || 10;
+    const acceptedFileSize = assistantInfo?.allowed_file_size || 10;
     if(
       acceptedFiles.some((file: File)=> (file.size / (1024 * 1024)) > acceptedFileSize)
     ) {
@@ -1103,7 +1099,7 @@ export function ChatPage({
         let assistantId:any = searchParams.get("assistantId");
         assistantId = assistantId && parseInt(assistantId);
         const personaId = selectedAssistant?.id || existingChatSessionPersonaId || assistantId;
-        if(assistantInfo.is_recommendation_supported && files.length && personaId) {
+        if(assistantInfo?.is_recommendation_supported && files.length && personaId) {
           getRecommnededQuestions(files[0].id, personaId).then((response: string[])=> {
             setQuestions(response);
           })
@@ -1302,7 +1298,7 @@ export function ChatPage({
                           <ChatIntro
                             availableSources={finalAvailableSources}
                             selectedPersona={livePersona}
-                            iconURL={assistantInfo.image_url || getDefaultAssistantIcon()}
+                            iconURL={assistantInfo?.image_url || getDefaultAssistantIcon()}
                           />
                         )}
 
@@ -1523,6 +1519,7 @@ export function ChatPage({
                                         )
                                       : !retrievalEnabled
                                   }
+                                  assistantInfo={assistantInfo}
                                 />
                               </div>
                             );
@@ -1538,6 +1535,7 @@ export function ChatPage({
                                       {message.message}
                                     </p>
                                   }
+                                  assistantInfo={assistantInfo}
                                 />
                               </div>
                             );
@@ -1572,6 +1570,7 @@ export function ChatPage({
                                     />
                                   </div>
                                 }
+                                assistantInfo={assistantInfo}
                               />
                             </div>
                           )}
@@ -1698,7 +1697,7 @@ export function ChatPage({
                           handleFileUpload={handleImageUpload}
                           setConfigModalActiveTab={setConfigModalActiveTab}
                           textAreaRef={textAreaRef}
-                          assistantInfo={assistantInfo}
+                          assistantInfo={assistantInfo || DEFAULT_ASSISTANT_INFO}
                         />
                       </div>
                     </div>
