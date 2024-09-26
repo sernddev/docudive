@@ -1,8 +1,4 @@
 import os
-import enum
-import json
-
-from typing import Dict, List
 
 from fastapi import APIRouter
 from fastapi import Depends
@@ -24,9 +20,6 @@ from danswer.server.settings.models import Settings, KeyValueStoreGeneric, Plugi
 from danswer.server.settings.store import load_settings, store_settings, store_key_value, load_key_value, \
     delete_key_value_generic, get_image_from_key_store, load_plugin_info, store_plugin_info
 
-from danswer.configs.app_configs import IMAGE_SERVER_PROTOCOL
-from danswer.configs.app_configs import IMAGE_SERVER_HOST
-from danswer.configs.app_configs import IMAGE_SERVER_PORT
 from danswer.utils.logger import setup_logger
 
 USER_INFO_KEY = "USER_INFO_"
