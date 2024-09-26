@@ -41,6 +41,9 @@ PUBLIC_ENDPOINT_SPECS = [
     # oauth
     ("/auth/oauth/authorize", {"GET"}),
     ("/auth/oauth/callback", {"GET"}),
+    # Public endpoint for serving icons
+    ("/icons", {"GET"}),
+    ("/icons/{file_path:path}", {"GET"})  # Allow all subpaths under /icons
 ]
 
 

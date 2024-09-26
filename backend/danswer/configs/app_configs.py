@@ -92,7 +92,7 @@ EMAIL_FROM = os.environ.get("EMAIL_FROM") or SMTP_USER
 IMAGE_SERVER_PROTOCOL = os.getenv("IMAGE_SERVER_PROTOCOL")
 IMAGE_SERVER_HOST = os.getenv("IMAGE_SERVER")
 IMAGE_SERVER_PORT = os.getenv("IMAGE_SERVER_PORT")
-
+ICON_DIRECTORY = os.getenv("ICON_DIRECTORY") or "/icons"
 try:
     IMAGE_SERVER_HOST = socket.gethostbyname('host.docker.internal') if IMAGE_SERVER_HOST in ('host.docker.internal', None, '') else IMAGE_SERVER_HOST
 except socket.error as e:
