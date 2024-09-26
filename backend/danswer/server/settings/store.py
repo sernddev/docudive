@@ -51,13 +51,17 @@ def delete_key_value_generic(key) -> None:
 def store_plugin_info(key: str, plugin_info: PluginInfoStore) -> None:
     get_dynamic_config_store().store(key, plugin_info.dict())
 
-
 def load_plugin_info(key) -> PluginInfoStore | None:
     dynamic_config_store = get_dynamic_config_store()
     try:
-        info = PluginInfoStore(**cast(dict, dynamic_config_store.load(key)))
+        data = dynamic_config_store.load(key)
+        if data is None:
+            logger.warning(f"No data found for key: {key}")
+            info = None
+        else:
+            info = PluginInfoStore(**cast(dict, data))
     except ConfigNotFoundError as ex:
-        logger.error(f"Error occurred during load_key_value for key : {key} Exception : {ex}")
+        logger.error(f"Error occurred during load_key_value for key: {key} Exception: {ex}")
         info = None
     return info
 

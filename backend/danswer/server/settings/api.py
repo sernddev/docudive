@@ -176,7 +176,7 @@ def list_image_urls(directory_path: str):
     """
     Lists all imaes URLs from the given directory.
     """
-    IMAGE_SERVER_BASE_URL = get_image_server_url()
+    image_base_url = "/icons/"
     image_urls = []
     try:
         for root, _, files in os.walk(directory_path):
@@ -184,13 +184,11 @@ def list_image_urls(directory_path: str):
                 if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.svg')):
                     file_path = os.path.join(root, file)
                     relative_path = os.path.relpath(file_path, directory_path)
-                    image_url = IMAGE_SERVER_BASE_URL + relative_path.replace("\\", "/")
+                    image_url = image_base_url + relative_path.replace("\\", "/")
                     image_urls.append(image_url)
     except Exception as ex:
         logger.error(
-            f"error while fetching icons from dir path: {directory_path} : ref img url:  {IMAGE_SERVER_BASE_URL}. Error: {ex}")
+            f"error while fetching icons from dir path: {directory_path} : ref img url:  {image_base_url}. Error: {ex}")
     return image_urls
 
 
-def get_image_server_url():
-    return IMAGE_SERVER_PROTOCOL + "://" + IMAGE_SERVER_HOST + ":" + IMAGE_SERVER_PORT + "/" + "icons/"
