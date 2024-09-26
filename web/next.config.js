@@ -24,7 +24,7 @@ const nextConfig = {
     if (process.env.NODE_ENV === "production") return [
       {
         source: "/icons/:path*",
-        destination: `${process.env.ICONS_SERVER || 'http://127.0.0.1:9123'}/:path*`, // Proxy to Image Server
+        destination: `${process.env.INTERNAL_URL || 'http://127.0.0.1:8080'}/:path*`, // Proxy to Backend Image Route
       }
     ];
 
@@ -35,7 +35,7 @@ const nextConfig = {
       },
       {
         source: "/icons/:path*",
-        destination: `${process.env.ICONS_SERVER || 'http://127.0.0.1:9123'}/:path*`, // Proxy to Image Server
+        destination: `${process.env.INTERNAL_URL || 'http://127.0.0.1:8080'}/:path*`, // Proxy to Backend Image Route
       }
     ];
   },
