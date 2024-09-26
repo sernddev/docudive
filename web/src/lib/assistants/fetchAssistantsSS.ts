@@ -18,7 +18,6 @@ export async function fetchAssistantIconsSS(): Promise<FetchAssistantIconsRespon
   let images: FetchAssistantIconsResponse = {};
   if (response.ok) {
     images =  await response.json();
-    console.log(images);
     for( const key in images) {
       if(!images[key] || !images[key]?.trim()) {
           delete images[key];
