@@ -9,6 +9,8 @@ from fastapi import Header, Response
 from typing import Optional
 
 from sqlalchemy.orm import Session
+
+from danswer.configs.app_configs import ICON_DIRECTORY
 from danswer.db.engine import get_session
 
 from danswer.auth.users import current_admin_user
@@ -160,7 +162,7 @@ def delete_image_url(key: str,  _: User | None = Depends(current_user)) -> None:
 
 @basic_router.get("/icons")
 def get_image_urls(_: User | None = Depends(current_user)) -> dict[str, list[str]]:
-    directory_path = "/icons"  # Change this to your directory path
+    directory_path = ICON_DIRECTORY  # Change this to your directory path
     image_urls = list_image_urls(directory_path)
     return {"icons_urls": image_urls}
 
@@ -169,7 +171,7 @@ def list_image_urls(directory_path: str):
     """
     Lists all imaes URLs from the given directory.
     """
-    image_base_url = "/icons/"
+    image_base_url = "/static/icons/" # this reference used only in UI and DB
     image_urls = []
     try:
         for root, _, files in os.walk(directory_path):

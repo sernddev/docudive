@@ -111,7 +111,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ../../backend:/code
-      - ../../web/public/icons:/icons
+      - ../../web/public:/static
       - /data/spectra_data/imageserver/web/images:/images
     logging:
       driver: json-file
@@ -444,7 +444,6 @@ services:
       - "9123:80"
     volumes:
       - /data/spectra_data/imageserver/web/images:/usr/share/nginx/html/images:ro
-      - ../../web/public/icons:/usr/share/nginx/html/icons:ro
       - ./imageserver_nginx.conf:/etc/nginx/nginx.conf:ro
       - /data/spectra_data/imageserver/logs:/var/log/nginx:rw
 

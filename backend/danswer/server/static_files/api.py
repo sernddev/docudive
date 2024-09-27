@@ -8,12 +8,12 @@ from danswer.utils.logger import setup_logger
 from danswer.configs.app_configs import ICON_DIRECTORY
 
 logger = setup_logger()
-basic_router = APIRouter(prefix="/icons")
+basic_router = APIRouter(prefix="/static")
 
 # Supported image types
 SUPPORTED_EXTENSIONS = {".png", ".svg", ".jpeg", ".jpg"}
 
-@basic_router.get("/{file_path:path}")
+@basic_router.get("/icons/{file_path:path}")
 async def serve_icon(file_path: str, request: Request, response: Response):
     # Build the full path (including subfolders)
     icon_path = os.path.join(ICON_DIRECTORY, file_path)
