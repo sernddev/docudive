@@ -46,7 +46,7 @@ from danswer.llm.answering.prompts.citations_prompt import (
 from danswer.llm.exceptions import GenAIDisabledException
 from danswer.llm.factory import get_default_llms, get_llms_for_persona
 from danswer.llm.headers import get_litellm_additional_request_headers
-from danswer.llm.utils import get_default_llm_tokenizer
+from danswer.llm.utils import get_default_llm_tokenizer, get_max_input_tokens
 from danswer.secondary_llm_flows.chat_session_naming import (
     get_renamed_conversation_name,
 )
@@ -66,9 +66,13 @@ from danswer.server.query_and_chat.models import RenameChatSessionResponse
 from danswer.server.query_and_chat.models import SearchFeedbackRequest
 from danswer.server.query_and_chat.models import UpdateChatSessionThreadRequest
 from danswer.server.query_and_chat.token_limit import check_token_rate_limits
+from danswer.server.settings.models import PluginInfoStore
+from danswer.server.settings.store import load_plugin_info
 from danswer.tools.email.send_email import EmailService
+from danswer.tools.questions_recommender.exceptions import PromptGenerationException
+from danswer.tools.summary.split_by_sentence_tokens import extract_first_sentence_by_token
 from danswer.tools.utils import load_to_dataframe
-from danswer.tools.questions_recommender.recomend_questions_using_llm import QuestionsRecommenderUsingLLM
+from danswer.tools.questions_recommender.recomend_questions_using_llm import QuestionsRecommenderUsingLLM, PromptConfig
 from danswer.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -607,29 +611,58 @@ def fetch_chat_file(
     return Response(content=file_io.read(), media_type="image/jpeg")
 
 
-@router.get("/file/recommend/questions/{file_id}/{persona_id}")
-def recommend_questions(file_id: str,
+@router.get("/file/recommend/questions/{file_extension}/{file_id}/{persona_id}")
+def recommend_questions(file_extension: str,
+                        file_id: str,
                         persona_id: int,
                         db_session: Session = Depends(get_session),
                         user: User | None = Depends(current_user)) -> dict[str, Any]:
     error = None
     questions = None
     try:
-        persona = get_persona_by_id(persona_id=persona_id,
-                                    user=user,
-                                    db_session=db_session,
-                                    is_for_edit=False)
-        llm, fast_llm = get_llms_for_persona(persona=persona,
-                                             llm_override=None,
-                                             additional_headers=None)
+        persona_id = 32
+        plugin_info_key = "PLUGIN_INFO_"
+        key = f"{plugin_info_key}{persona_id}"
+        info = load_plugin_info(key)
+        if info.is_recommendation_supported and info.recommendation_prompt:
+            recommendation_prompt = info.recommendation_prompt
+            system_prompt = None
+            task_prompt = None
+            if "system" in recommendation_prompt:
+                system_prompt = recommendation_prompt['system']
+            if "task" in recommendation_prompt:
+                task_prompt = recommendation_prompt['task']
 
-        questions_recommender = QuestionsRecommenderUsingLLM(llm, llm.config, None)
-        file_store = get_default_file_store(db_session)
-        file_io = file_store.read_file(file_id, mode="b")
-        dataframe = load_to_dataframe(file_io.read())
-        questions = questions_recommender.recommend(dataframe)
-    except (GenAIDisabledException, Exception) as e:
-        logger.error(f'Exception received while executing recommend_questions: {str(e)}')
-        error = 'Exception received while executing recommend_questions.'
+            if system_prompt is not None and task_prompt is not None:
+                persona = get_persona_by_id(persona_id=persona_id,
+                                            user=user,
+                                            db_session=db_session,
+                                            is_for_edit=False)
+                logger.info(f'persona fetched for person_id: {persona_id}. persona: {persona}')
+                llm, fast_llm = get_llms_for_persona(persona=persona,
+                                                     llm_override=None,
+                                                     additional_headers=None)
+                logger.info(f'LLM fetched for persona(id: {persona_id}). LLM: {llm}')
+                prompt_config = PromptConfig(system_prompt=system_prompt, task_prompt=task_prompt)
+                questions_recommender = QuestionsRecommenderUsingLLM(llm, llm.config, prompt_config)
+                file_store = get_default_file_store(db_session)
+                file_io = file_store.read_file(file_id, mode="b")
+                file_content = file_io.read()
+                if file_extension in ['xls', 'xlsx', 'xlsm', 'xlsb', 'xltx', 'xltm', 'csv']:
+                    dataframe = load_to_dataframe(file_content)
+                    questions = questions_recommender.recommend(dataframe)
+                else:
+                    str_chunk = extract_first_sentence_by_token(file_content=str(file_content), max_tokens=4000)
+                    questions = questions_recommender.recommend_for_unstructured_data(str_chunk)
+            else:
+                error = 'System Prompt and Task Prompt is None. Kindly configure them in the plugin.'
+        else:
+            error = 'Recommendation not supported. Kindly enable it and configure the recommendation prompt in the plugin.'
+    except (GenAIDisabledException, PromptGenerationException, Exception) as e:
+        logger.error(f'Exception received while executing recommend_questions: {e}')
+        if isinstance(e, PromptGenerationException):
+            error = 'Exception occurred while generating prompt. Please check and modify the prompt.'
+        else:
+            error = 'Exception received while executing question recommendations.'
 
     return {"questions": questions, "error": error}
