@@ -28,6 +28,10 @@ const nextConfig = {
         source: "/api/:path*",
         destination: `${process.env.INTERNAL_URL || 'http://127.0.0.1:8080'}/:path*`, // Proxy to Backend
       },
+      {
+        source: "/static/:path*",
+        destination: `${process.env.INTERNAL_URL || 'http://127.0.0.1:8080'}/static/:path*`, // Proxy to Backend Image Route - only for local
+      }
     ];
   },
   redirects: async () => {

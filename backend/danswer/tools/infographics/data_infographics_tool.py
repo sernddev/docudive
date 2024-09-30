@@ -11,6 +11,8 @@ from danswer.db.models import User
 from danswer.dynamic_configs.interface import JSON_ro
 from danswer.file_store.models import InMemoryChatFile
 from danswer.llm.answering.models import PromptConfig, PreviousMessage
+from danswer.llm.answering.prompts.build import AnswerPromptBuilder, default_build_system_message, \
+    default_build_user_message
 from danswer.llm.interfaces import LLMConfig, LLM
 from danswer.tools.infographics.exceptions import DataframeInMemorySQLExecutionException, LLMException
 from danswer.tools.infographics.plot_summarize_generate_sql import PlotSummarizeGenerateSQL
@@ -140,7 +142,8 @@ class FileDataInfographicsTool(Tool):
                 image_path = self.plot_summarize_sql.resolve_parameters_and_generate_chart(sql_query=sql_generation_tool_output,
                                                                                            filtered_df=filtered_df,
                                                                                            user_requirement=query,
-                                                                                           metadata=self.metadata)
+                                                                                           metadata=self.metadata,
+                                                                                           prompt_config=self.prompt_config)
                 logger.info(f'sql_generation_tool:: image_path: {image_path}, filtered_df: {filtered_df}')
                 if filtered_df is not None and not filtered_df.empty:
                     list_records = filtered_df.to_dict('records')
