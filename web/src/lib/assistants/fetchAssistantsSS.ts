@@ -19,7 +19,7 @@ export async function fetchAssistantIconsSS(): Promise<FetchAssistantIconsRespon
   if (response.ok) {
     images =  await response.json();
     for( const key in images) {
-      if(!isValidImageUrl(images[key])) {
+      if(!images[key] || !images[key]?.trim()) {
           delete images[key];
       }
     }
