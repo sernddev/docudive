@@ -620,7 +620,6 @@ def recommend_questions(file_extension: str,
     error = None
     questions = None
     try:
-        persona_id = 32
         plugin_info_key = "PLUGIN_INFO_"
         key = f"{plugin_info_key}{persona_id}"
         info = load_plugin_info(key)
