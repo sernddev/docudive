@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-
 from danswer.tools.infographics.exceptions import LLMException
 from danswer.utils.logger import setup_logger
 import json
@@ -19,45 +18,15 @@ class PromptConfig:
     template: str
 
 
-def construct_prompt(sql_query, schema, requirement, chart_type):
-    resolve_x_and_y_context = f"""**SQL Query Results and Schema Context:**
-        Given the SQL query results and database schema, identify the appropriate fields for creating a visualization using Plotly. The output should directly match the SQL query structure, considering all selected fields.
-
-        **SQL Query:**
-        {sql_query}
-
-        **Database Schema:**
-        {schema}
-
-        **Chart Type:**
-        {chart_type}
-
-        **User Requirements:**
-        {requirement}    
-        \n The user aims to visualize data related to the SQL query focused on requirement, requiring a comprehensive representation of all fields used in the SQL query for aggregations, computations, or groupings.\n    
-
-        **Expected Fields from SQL Query:**
-        - Ensure that the number of fields suggested corresponds exactly to the number of columns returned by the SQL query.
-        - The fields should be listed in the order they appear in the SQL query results and presented in a dictionary format appropriate to the chart type.    
-
-        **Guidelines for Suggesting Fields:**
-        - For PIE, BAR, and HEATMAP charts, suggest fields for 'x' and 'y' and return dictionary like {{"x": "", "y": ""}}.
-        - For SCATTER charts, suggest fields for 'x', 'y', and 'color' and return dictionary like {{"x": "", "y": "", "color": ""}}.
-        - For SCATTER_MATRIX charts, suggest fields for 'x', 'y', 'color', and 'size' and return dictionary like {{"x": "", "y": "", "color": "", "size": ""}}.         
-        - Ensure the 'size' parameter must be a numeric field; if the initially suggested 'size' is not numeric, suggest the next available numeric field from the database.
-        - If no suitable numeric field is available for 'size', reconsider the roles of 'x' and 'y' to ensure they are optimally assigned.
-        - Analyze columns properly to suggest the right match for each parameter, especially for SCATTER_MATRIX:
-          - 'x' and 'y' should be chosen based on their ability to represent dimensions.
-          - 'color' should ideally be a categorical variable.
-          - 'size' must be a numeric column, suitable for quantifying or scaling markers.
-        - Avoid assumptions; ensure the suggested fields match the actual data types required for each chart parameter.
-        - Do not include any explanations or additional text.
-
-        **Output:**
-        Provide suggestions in a dictionary format, ensuring all suggestions align with the type of visualization to effectively convey the intended insights and reflect the data structure accurately.
-        """
-    question = f"Based on the SQL Query and user requirements, what are the appropriate field names for plotting a {chart_type}? Please format your response as a dictionary mapping field names to the roles they play in the visualization."
-    prompt = f""" context: {resolve_x_and_y_context}, question: {question} """
+def construct_prompt(sql_query, schema, requirement, chart_type, prompt_config):
+    system_prompt = prompt_config.system_prompt
+    system_prompt = system_prompt.format(sql_query=sql_query, schema=schema, chart_type=chart_type, requirement=requirement)
+    task_prompt = prompt_config.task_prompt
+    context = system_prompt + "\n\n" + task_prompt
+    question = (f"Based on the sql query, schema, chart and user requirements, what are the appropriate field names for plotting a {chart_type}? "
+                f"Please format your response as a dictionary mapping field names to the roles they play in the visualization.")
+    prompt_template = f""" context: {context}, question: {question} """
+    prompt = prompt_template.format(context=context, question=question)
     return prompt
 
 
@@ -94,9 +63,9 @@ class ResolvePlotParametersUsingLLM:
         logger.info('Initialized ResolvePlotParametersUsingLLM with model %s', self.llm_config.model_name)
 
     def resolve_graph_parameters(self, sql_query, schema, requirement,
-                                 chart_type, metadata=None) -> list:
+                                 chart_type, metadata=None, prompt_config: PromptConfig = None) -> list:
         """ Resolve graph parameters by querying the LLM with constructed prompts. """
-        prompt = construct_prompt(sql_query, format_dataframe_schema(schema), requirement, chart_type)
+        prompt = construct_prompt(sql_query, format_dataframe_schema(schema), requirement, chart_type, prompt_config)
         try:
             llm_response = self.llm.invoke(prompt=prompt, metadata=metadata)
             field_names = llm_response.content
