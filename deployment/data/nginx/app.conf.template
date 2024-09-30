@@ -50,6 +50,23 @@ server {
         proxy_pass http://api_server;
     }
 
+    location /static/ {
+        alias /static/;
+
+        # Cache settings
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000, immutable";
+
+        # Enable gzip compression
+        gzip on;
+        gzip_types text/css application/javascript application/json image/svg+xml;
+        gzip_min_length 256;
+
+        # Security settings
+        autoindex off;
+        access_log off;
+    }
+
     location / {
         # misc headers
         proxy_set_header X-Real-IP $remote_addr;

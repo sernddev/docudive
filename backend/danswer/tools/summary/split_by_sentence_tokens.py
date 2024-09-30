@@ -73,6 +73,19 @@ def main(text, max_tokens=500):
         print(f"Section {idx + 1}: tokens: {check_number_of_tokens(section,encode_fn)}\n{section}\n")
 
 
+def extract_first_sentence_by_token(file_content: str, max_tokens: int = 4000):
+    sentences = sent_tokenize(file_content)
+    current_token_count = 0
+    str_chunk = ""
+    for sentence in sentences:
+        current_token_count = int(current_token_count + check_number_of_tokens(sentence))
+        if current_token_count <= max_tokens:
+            str_chunk = str(str_chunk + sentence)
+        else:
+            break
+    return str_chunk
+
+
 if __name__ == "__main__":
     # Example usage with Arabic text:
     arabic_text = """

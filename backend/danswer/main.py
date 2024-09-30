@@ -86,6 +86,7 @@ from danswer.server.settings.api import basic_router as settings_router
 from danswer.server.token_rate_limits.api import (
     router as token_rate_limit_settings_router,
 )
+from danswer.server.static_files.api import basic_router as static_file_router
 from danswer.tools.built_in_tools import auto_add_search_tool_to_personas
 from danswer.tools.built_in_tools import load_builtin_tools
 from danswer.tools.built_in_tools import refresh_built_in_tools_cache
@@ -289,12 +290,14 @@ def get_application() -> FastAPI:
     include_router_with_global_prefix_prepended(application, danswer_api_router)
     include_router_with_global_prefix_prepended(application, gpts_router)
     include_router_with_global_prefix_prepended(application, settings_router)
+    include_router_with_global_prefix_prepended(application, static_file_router)
     include_router_with_global_prefix_prepended(application, settings_admin_router)
     include_router_with_global_prefix_prepended(application, llm_admin_router)
     include_router_with_global_prefix_prepended(application, llm_router)
     include_router_with_global_prefix_prepended(
         application, token_rate_limit_settings_router
     )
+
     # configure longfuse for llm
     litellm.success_callback = ["langfuse"]
     litellm.failure_callback = ["langfuse"]

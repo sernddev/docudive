@@ -12,6 +12,11 @@ from danswer.db.pg_file_store import delete_pgfilestore_by_file_name
 from danswer.db.pg_file_store import get_pgfilestore_by_file_name
 from danswer.db.pg_file_store import read_lobj
 from danswer.db.pg_file_store import upsert_pgfilestore
+from pathlib import Path
+from danswer.configs.app_configs import FILE_SERVER_PATH
+from danswer.configs.app_configs import DEFAULT_STORE
+import io
+
 
 
 class FileStore(ABC):
@@ -134,7 +139,89 @@ class PostgresBackedFileStore(FileStore):
             self.db_session.rollback()
             raise
 
+class DiskBackedFileStore(FileStore):
+    def __init__(self, db_session: Session):
+        self.db_session = db_session
+        self.file_storage_directory = Path("FILES")
+        self.file_storage_directory.mkdir(parents=True, exist_ok=True)
+
+    def save_file(
+        self,
+        file_name: str,
+        content: IO,
+        display_name: str | None,
+        file_origin: FileOrigin,
+        file_type: str,
+        file_metadata: dict | None = None,
+    ) -> None:
+        try:
+            # Optimize by reducing redundant operations and handling larger files efficiently
+            file_path = self.file_storage_directory / file_name
+
+            # Encrypt the content directly and write it to disk
+            with open(file_path, "wb") as f:
+                for chunk in iter(lambda: content.read(4096), b''):  # Read in chunks to handle large files
+                    f.write(chunk)
+
+            # Save file metadata and reference in the database
+            upsert_pgfilestore(
+                file_name=file_name,
+                display_name=display_name or file_name,
+                file_origin=file_origin,
+                file_type=file_type,
+                lobj_oid=0,  # No large object, store file on disk
+                db_session=self.db_session,
+                file_metadata=file_metadata,
+            )
+            self.db_session.commit()
+        except Exception:
+            self.db_session.rollback()
+            raise
+
+    def read_file(
+        self, file_name: str, mode: str | None = "rb", use_tempfile: bool = False
+    ) -> IO:
+        file_record = get_pgfilestore_by_file_name(
+            file_name=file_name, db_session=self.db_session
+        )
+        file_path = self.file_storage_directory / file_name
+
+        if not file_path.exists():
+            raise FileNotFoundError(f"File {file_name} not found on disk.")
+
+        content = io.BytesIO()
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b''):  # Read in 4KB chunks
+                content.write(chunk)
+
+            # Move the pointer to the beginning of the BytesIO object
+        content.seek(0)
+
+        return content
+
+    def read_file_record(self, file_name: str) -> PGFileStore:
+        file_record = get_pgfilestore_by_file_name(
+            file_name=file_name, db_session=self.db_session
+        )
+        return file_record
+
+    def delete_file(self, file_name: str) -> None:
+        try:
+            file_path = self.file_storage_directory / file_name
+            if file_path.exists():
+                file_path.unlink()  # Remove the file from disk
+
+            # Delete the file record from the database
+            delete_pgfilestore_by_file_name(
+                file_name=file_name, db_session=self.db_session
+            )
+            self.db_session.commit()
+        except Exception:
+            self.db_session.rollback()
+            raise
 
 def get_default_file_store(db_session: Session) -> FileStore:
-    # The only supported file store now is the Postgres File Store
-    return PostgresBackedFileStore(db_session=db_session)
+    if DEFAULT_STORE=="DB":
+        return PostgresBackedFileStore(db_session=db_session)
+    else:
+        return DiskBackedFileStore(db_session=db_session)

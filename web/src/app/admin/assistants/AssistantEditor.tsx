@@ -217,6 +217,27 @@ export function AssistantEditor({
         .some((id: number | undefined)=> id && currentToolState[id]);
   }
 
+  const setInitailAssistantInfo = (assistantInfo: PluginInfo)=> {
+    let initValue = {
+      ...assistantInfo,
+    }
+    if(mandateFileUpload(enabledToolsMap)) {
+      initValue = {...assistantInfo, supports_file_upload: true }
+    } 
+    try {
+      if(initValue.recommendation_prompt?.task && typeof initValue.recommendation_prompt?.task === 'string') {
+        initValue.recommendation_prompt.task = JSON.parse(initValue.recommendation_prompt?.task);
+      }
+      if(initValue.recommendation_prompt?.system && typeof initValue.recommendation_prompt?.system === 'string') {
+        initValue.recommendation_prompt.system = JSON.parse(initValue.recommendation_prompt?.system);
+      }
+    } catch(e) {
+      console.log(`Error parsing ${e}`);
+    }
+    
+    return initValue;
+  }
+
   const initialValues = {
     name: existingPersona?.name ?? "",
     description: existingPersona?.description ?? "",
@@ -235,7 +256,7 @@ export function AssistantEditor({
       existingPersona?.llm_model_version_override ?? null,
     starter_messages: existingPersona?.starter_messages ?? [],
     enabled_tools_map: enabledToolsMap,
-    assistants_info: mandateFileUpload(enabledToolsMap)? {...assistantInfo, supports_file_upload: true } : assistantInfo,
+    assistants_info: setInitailAssistantInfo(assistantInfo),
     //   search_tool_enabled: existingPersona
     //   ? personaCurrentToolIds.includes(searchTool!.id)
     //   : ccPairs.length > 0,
@@ -413,7 +434,12 @@ export function AssistantEditor({
           } else {
             const assistant = await personaResponse.json();
             const assistantId = assistant.id;
-            saveAssistantInfo(assistantId, values.assistants_info);
+            // Cleaning up the inputs
+            const recommendationPrompt: RecommendationPrompt = {
+              task: values.assistants_info.recommendation_prompt?.task ? JSON.stringify(values.assistants_info.recommendation_prompt?.task): "",
+              system: values.assistants_info.recommendation_prompt?.system ? JSON.stringify(values.assistants_info.recommendation_prompt?.system): ""
+            }
+            saveAssistantInfo(assistantId, {...values.assistants_info, recommendation_prompt: recommendationPrompt});
 
             if (
               shouldAddAssistantToUserPreferences &&

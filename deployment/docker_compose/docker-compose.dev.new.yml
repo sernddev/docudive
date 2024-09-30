@@ -111,7 +111,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ../../backend:/code
-      - ../../web/public/icons:/icons
+      - ../../web/public:/static
       - /elk/imageserver/web/images:/images
     logging:
       driver: json-file
@@ -406,6 +406,7 @@ services:
       - "3000:80"  # allow for localhost:3000 usage, since that is the norm
     volumes:
       - ../data/nginx:/etc/nginx/conf.d
+      - ../../web/public:/static
     logging:
       driver: json-file
       options:
@@ -427,7 +428,6 @@ services:
       - "9123:80"
     volumes:
       - /elk/imageserver/web/images:/usr/share/nginx/html/images:ro
-      - ../../web/public/icons:/usr/share/nginx/html/icons:ro
       - ./imageserver_nginx.conf:/etc/nginx/nginx.conf:ro
       - /elk/imageserver/logs:/var/log/nginx:rw
     restart: unless-stopped

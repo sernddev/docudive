@@ -11,11 +11,13 @@ import socket
 # App Configs
 #####
 APP_HOST = "0.0.0.0"
-APP_PORT = 8080
+APP_PORT = 8082
 # API_PREFIX is used to prepend a base path for all API routes
 # generally used if using a reverse proxy which doesn't support stripping the `/api`
 # prefix from requests directed towards the API server. In these cases, set this to `/api`
 APP_API_PREFIX = os.environ.get("API_PREFIX", "")
+
+
 
 #####
 # User Facing Features Configs
@@ -70,8 +72,8 @@ VALID_EMAIL_DOMAINS = (
     else []
 )
 # OAuth Login Flow
-# Used for both Google OAuth2 and OIDC flows
-OAUTH_CLIENT_ID = (
+# Used for both Google OAuth2 and OIDC flow
+OAUTH_CLIENT_ID= (
         os.environ.get("OAUTH_CLIENT_ID", os.environ.get("GOOGLE_OAUTH_CLIENT_ID")) or ""
 )
 OAUTH_CLIENT_SECRET = (
@@ -85,18 +87,25 @@ REQUIRE_EMAIL_VERIFICATION = (
         os.environ.get("REQUIRE_EMAIL_VERIFICATION", "").lower() == "true"
 )
 SMTP_SERVER = os.environ.get("SMTP_SERVER") or "smtp.gmail.com"
-SMTP_PORT = int(os.environ.get("SMTP_PORT") or "587")
+SMTP_PORT = int(os.environ.get("SMTP_PORT") or 587)
 SMTP_USER = os.environ.get("SMTP_USER", "your-email@gmail.com")
 SMTP_PASS = os.environ.get("SMTP_PASS", "your-gmail-password")
 EMAIL_FROM = os.environ.get("EMAIL_FROM") or SMTP_USER
 IMAGE_SERVER_PROTOCOL = os.getenv("IMAGE_SERVER_PROTOCOL")
 IMAGE_SERVER_HOST = os.getenv("IMAGE_SERVER")
 IMAGE_SERVER_PORT = os.getenv("IMAGE_SERVER_PORT")
-
+ICON_DIRECTORY = os.getenv("ICON_DIRECTORY") or "/static/icons"
 try:
     IMAGE_SERVER_HOST = socket.gethostbyname('host.docker.internal') if IMAGE_SERVER_HOST in ('host.docker.internal', None, '') else IMAGE_SERVER_HOST
 except socket.error as e:
     print(f"Could not resolve host.docker.internal: {e}")
+
+
+###
+#default store can be DISK or DB
+###
+DEFAULT_STORE = os.environ.get("DEFAULT_STORE") or "DB"
+FILE_SERVER_PATH = os.environ.get("FILE_SERVER_PATH") or "FILES"
 
 #####
 # DB Configs
