@@ -5,6 +5,7 @@ from danswer.tools.infographics.resolve_plot_parameters_using_llm import Resolve
 from danswer.tools.infographics.plot_charts import generate_chart_and_save, find_chart_type
 from danswer.tools.infographics.resolve_plot_type_parameters_generate_execute_code_using_llm import \
     ResolvePlotTypeAndParametersAndGenerateExecuteCodeUsingLLM
+from danswer.tools.questions_recommender.recomend_questions_using_llm import PromptConfig
 from danswer.tools.utils import load_to_dataframe
 from danswer.utils.logger import setup_logger
 
@@ -79,7 +80,7 @@ class PlotSummarizeGenerateSQL:
         else:
             return 'Failed To resolve parameters and generate chart. Dataframe is empty.'
 
-    def resolve_parameters_and_generate_chart(self, filtered_df, sql_query, user_requirement, metadata=None) -> str:
+    def resolve_parameters_and_generate_chart(self, filtered_df, sql_query, user_requirement, metadata=None, prompt_config: PromptConfig = None) -> str:
         if filtered_df is not None and not filtered_df.empty:
             try:
                 chart_type = find_chart_type(filtered_df)
@@ -87,7 +88,8 @@ class PlotSummarizeGenerateSQL:
                                                                                      schema=filtered_df.dtypes,
                                                                                      requirement=user_requirement,
                                                                                      chart_type=chart_type,
-                                                                                     metadata=metadata)
+                                                                                     metadata=metadata,
+                                                                                     prompt_config=prompt_config)
                 # TODO: check resolved params name are same as column name
                 image_url = generate_chart_and_save(dataframe=filtered_df,
                                                     field_names=column_names,
