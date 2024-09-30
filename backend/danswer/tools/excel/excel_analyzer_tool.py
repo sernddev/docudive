@@ -376,7 +376,8 @@ class ExcelAnalyzerTool(Tool):
             f"Your data analyst, analyze the data from the dataframe and try to answer the user's question. "
         )
 
-        if response.data is None and not response.has_min_max():
+        if ((response.data is None and not response.has_min_max()) or
+                (isinstance(response.data, pd.DataFrame) and len(response.data)==0)):
             analzye_prompt = (
                 f"This is the user query: {query}. "
                 "No valid data was fetched. Please ask user to re-write the question, make this very short and "
