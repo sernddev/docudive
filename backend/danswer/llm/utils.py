@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable
 from collections.abc import Iterator
 from copy import copy
@@ -272,6 +273,15 @@ def check_message_tokens(
             total_tokens += _IMG_TOKENS
 
     return total_tokens
+
+def filter_non_english_arabic(text: str) -> str:
+    # Regex pattern to retain only English, Arabic, and whitespace characters
+    return re.sub(r'[^\u0000-\u007F\u0600-\u06FF\s]', '', text)
+
+
+def filter_chinese_characters(text: str) -> str:
+    # This regex pattern matches Chinese characters (CJK Unified Ideographs) and removes them
+    return re.sub(r'[\u4E00-\u9FFF]', '', text)
 
 
 def check_number_of_tokens(
