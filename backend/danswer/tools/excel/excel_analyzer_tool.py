@@ -11,7 +11,7 @@ from danswer.dynamic_configs.interface import JSON_ro
 from danswer.file_store.models import InMemoryChatFile
 from danswer.llm.answering.prompts.build import AnswerPromptBuilder, \
     default_build_system_message_by_prmpt, default_build_user_message_by_task_prompt
-from danswer.llm.utils import message_to_string
+from danswer.llm.utils import message_to_string, check_number_of_tokens
 from danswer.tools.excel import excel_analyzer_bl
 from danswer.tools.excel.excel_analyzer_bl import load_and_convert_types, dataframe_to_markdown_bold_header
 from danswer.tools.tool import Tool
@@ -254,7 +254,7 @@ class ExcelAnalyzerTool(Tool):
                 self.llm.invoke(prompt=analzye_prompt, metadata=self.metadata)
             )
             if response.data is None and not response.has_min_max():
-                tool_output += f"\n\nData Preview: \n\n{dataframe_to_markdown_bold_header(dataframe.head(5))}"
+                tool_output += f"\n\nData Preview : \n\n{dataframe_to_markdown_bold_header(dataframe.head(5))}"
 
             yield ToolResponse(
                 id=EXCEL_ANALYZER_RESPONSE_ID,
@@ -313,23 +313,79 @@ class ExcelAnalyzerTool(Tool):
             return "concise"
 
     def get_dataframe_preview(self, dataframe):
-        return f"{dataframe.head(5).to_csv(index=False)}\n...\n        {dataframe.tail(5).to_csv(index=False, header=False)}"
-    def generate_analyze_prompt(self, response, query, schema, original_dataset):
+        #return f"{dataframe_to_markdown_bold_header(dataframe.head(10))}"
+        return f"{dataframe.to_json(orient='records')}"
+
+    import pandas as pd
+
+    def trim_dataframe_to_max_tokens(df: pd.DataFrame, max_token_length: int = 1000) -> pd.DataFrame:
+
+        total_rows = len(df)
+
+        # Set dynamic batch size based on the number of rows in the DataFrame
+        if total_rows > 1000:
+            batch_size = 100
+        elif total_rows <= 100:
+            batch_size = 10
+        else:
+            batch_size = total_rows // 10  # proportionally adjust batch size
+
+        token_count = 0
+        rows_to_include = []
+
+        text = ''
+        sent = text.split(' ')
+        final_str= ""
+        noof=0;
+        for s in sent:
+            noof+= check_number_of_tokens(s)
+            if(noof<max_token_length):
+                final_str += s
+
+
+        # Process the DataFrame in batches
+        for i in range(0, total_rows, batch_size):
+            batch = df.iloc[i:i + batch_size]
+            batch_string = batch.to_string()  # Convert the batch to string
+            batch_tokens = check_number_of_tokens(batch_string)
+
+            if token_count + batch_tokens <= max_token_length:
+                rows_to_include.extend(batch.to_dict('records'))
+                token_count += batch_tokens
+            else:
+                # Process row by row within the batch to fit under the limit
+                for _, row in batch.iterrows():
+                    row_string = row.to_string()
+                    row_tokens = check_number_of_tokens(row_string)
+
+                    if token_count + row_tokens <= max_token_length:
+                        rows_to_include.append(row.to_dict())
+                        token_count += row_tokens
+                    else:
+                        break
+                break
+
+        # Create new DataFrame with the included rows
+        trimmed_df = pd.DataFrame(rows_to_include)
+
+        return trimmed_df
+
+    def generate_analyze_prompt(self, response, query, schema, original_dataset: pd.DataFrame):
 
         analzye_prompt = (
             f"Your data analyst, analyze the data from the dataframe and try to answer the user's question. "
         )
 
         if response.data is None and not response.has_min_max():
-            analzye_prompt += (
+            analzye_prompt = (
                 f"This is the user query: {query}. "
                 "No valid data was fetched. Please ask user to re-write the question, make this very short and "
                 "meaning full in separate paragraph, mention based on given data."
-                f"suggest 3 very simple text question based on the  schema like with where clause or group by, "
-                f"but dont generate any source code,  just generate questions  based on this schema:{schema}, "
-                f"and ask user to try, dont mention to used these are simple test question. mention these questions "
-                f"are suggestions"
-                f"\n\n Data Preview: {self.get_dataframe_preview(original_dataset)},"
+                f"suggest 3 very simple text question based on the  schema like with where clause or group by (but "
+                f"dont tell user these are simple questions),"
+                f"dont generate any source code,  just generate questions  based on this schema:{schema}, "
+                f"and ask user to try"
+                f"\n\n Data Preview in json format: {self.get_dataframe_preview(original_dataset.head(5))},"
             )
             return analzye_prompt
 
@@ -346,13 +402,16 @@ class ExcelAnalyzerTool(Tool):
             if isinstance(response.data, pd.DataFrame):
                 type_of_data = 'dataframe'
                 if len(response.data) > 10:
-                    # Include header only with head(5), and skip header with tail(5)
-                    temp_data = f"data preview first and last 5 records: \n\n ''' {self.get_dataframe_preview(original_dataset)} '''"
+                    temp_data = (f"\n\n ''' {self.get_dataframe_preview(response.data)} '''"
+                                 f" \n\nInform user your displaying only few records matches for the given query., "
+                                 f"total records for the query is: {len(response.data)}")
                 else:
-                    temp_data = response.data.to_csv(index=False)
+                    temp_data = self.get_dataframe_preview(response.data)
             elif isinstance(response.data, pd.Series):
                 type_of_data = 'series'
-                temp_data = f"sample data points first and last 5: {response.data.head(5).to_list()} ... {response.data.tail(5).to_list()}"
+                temp_data = (f"sample data points first and last 5: \n\n{self.get_dataframe_preview(response.data.head(10))}."
+                             f"\n\n Inform user, this is small set of data, full data is not included in report"
+                             f"\n\nTotal records for the query is: {len(response.data)}")
             else:
                 type_of_data = 'single_value'
                 temp_data = str(response.data)
@@ -369,26 +428,27 @@ class ExcelAnalyzerTool(Tool):
                     f"{report_text} "
                     f"This is the user query: {query}. "
                     f"Total record count for the user query: {len(response.data)} out of total records in given data {len(original_dataset)}."
-                    f"Here are the facts about user query in csv format: \n{temp_data}"
+                    f"Answer for user query in markdown format: \n{temp_data}"
                 )
             elif type_of_data == 'series':
                 analzye_prompt += (
                     f"{report_text} "
                     f"This is the user query: {query}. "
-                    f"Here are the facts about user query in list format: \n{temp_data}"
+                    f"Answer for user query: \n{temp_data}"
                 )
             elif type_of_data == 'single_value':
                 analzye_prompt += (
                     f"{report_text} "
                     f"This is the user query: {query}. "
-                    f"Here are the facts about user query in value: {temp_data}"
+                    f"Answer for user query: {temp_data}"
                 )
 
 
         logger.info(analzye_prompt)
 
         analzye_prompt = analzye_prompt + ("\n\n DON'T MENTION THAT YOUR USING DATAFRAME, WHEN EVER REQUIRED SAY BASED "
-                                           "ON GIVEN DATA OR DATASET")
+                                           "ON GIVEN DATA OR DATASET. DON'T USE YOUR OWN KNOWLEDGE TO PROVIDE ANSWER, "
+                                           "PLEASE USE GIVEN CONTEXT ONLY")
         return analzye_prompt
 
     def final_result(self, *args: ToolResponse) -> JSON_ro:
