@@ -5,9 +5,9 @@ personas:
   # this is for SpectraBot to use when tagged in a non-configured channel
   # Careful setting specific IDs, this won't autoincrement the next ID value for postgres
   - id: 0
-    name: "Spectra"
+    name: "Knowledge Publisher"
     description: >
-      Plugin with access to documents from your Connected Sources.
+      Access the documents from your Connected Sources.
     # Default Prompt objects attached to the persona, see prompts.yaml
     prompts:
       - "Answer-Question"
@@ -42,7 +42,7 @@ personas:
   - id: 1
     name: "GPT"
     description: >
-      Plugin with no access to documents. Chat with just the Language Model.
+      Access the Global General Knowledge from the LLM.
     prompts:
       - "OnlyLLM"
     num_chunks: 0
@@ -53,9 +53,9 @@ personas:
 
 
   - id: 2
-    name: "Paraphrase"
+    name: "iExtract Answer"
     description: >
-      Plugin that is heavily constrained and only provides exact quotes from Connected Sources.
+      Extract the exact answer from the Connected Sources.
     prompts:
       - "Paraphrase"
     num_chunks: 10

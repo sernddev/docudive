@@ -6,7 +6,7 @@ export async function fetchAssistantIcon(assistantId?:number | null) {
 
         if(response.ok) {
             const json = await response.json();
-            if(json && isValidImageUrl(json)) {
+            if(json) {
                 return json;
             }
         } 
@@ -15,7 +15,7 @@ export async function fetchAssistantIcon(assistantId?:number | null) {
         const res = await fetch('/api/settings/image_url');
         const images = await res.json();
         for( const key in images) {
-            if(!isValidImageUrl(images[key])) {
+            if(!images[key] || !images[key]?.trim()) {
                 delete images[key];
             }
         }

@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from danswer.dynamic_configs.interface import JSON_ro
 from danswer.llm.answering.prompts.build import AnswerPromptBuilder, default_build_system_message, \
     default_build_user_message
-from danswer.llm.utils import message_to_string, message_generator_to_string_generator
+from danswer.llm.utils import message_to_string, message_generator_to_string_generator, filter_chinese_characters
 from danswer.server.settings.api import get_user_info
 from danswer.server.settings.models import KeyValueStoreGeneric
 from danswer.tools.tool import Tool
@@ -163,9 +163,9 @@ class ComposeEmailTool(Tool):
         )
         prompt = prompt_builder.build()
 
-        mail_response = message_to_string(
+        mail_response = filter_chinese_characters(message_to_string(
             self.llm.invoke(prompt=prompt)
-        )
+        ))
 
         logger.info(f"Email plugin - mail composing completed")
 

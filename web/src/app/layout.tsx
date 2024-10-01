@@ -18,10 +18,10 @@ export async function generateMetadata(): Promise<Metadata> {
     dynamicSettings.enterpriseSettings &&
     dynamicSettings.enterpriseSettings?.use_custom_logo
       ? "/api/enterprise-settings/logo"
-      : buildClientUrl("/favicon.ico");
+      : "/favicon.ico";
 
   return {
-    title: dynamicSettings.enterpriseSettings?.application_name ?? "Spectra",
+    title: dynamicSettings.enterpriseSettings?.application_name ?? "ALYAH",
     description: "Question answering for your documents",
     icons: {
       icon: logoLocation,
