@@ -593,18 +593,26 @@ export async function uploadFilesForChat(
   return [responseJson.files as FileDescriptor[], null];
 }
 
-export async function getRecommnededQuestions(fileId: string, personaId: number) {
+export async function getRecommendedQuestions(fileId: string, fileName: string, personaId: number) {
     const questions: string[] = [];
-    const response = await fetch(`/api/chat/file/recommend/questions/${fileId}/${personaId}`)
-    if (!response.ok) {
-      return questions;
+    let fileExtension = ""
+    if(fileName !== "") {
+      fileExtension = fileName.split('.')[1]
     }
-    const responseJson = await response.json();
-    if(responseJson?.questions?.length) {
-      if(responseJson.questions.length > 4) {
-        return responseJson.questions.slice(0,4);
+    try {
+      const response = await fetch(`/api/chat/file/recommend/questions/${fileExtension}/${fileId}/${personaId}`)
+      if (!response.ok) {
+        return questions;
       }
-      return responseJson.questions;
+      const responseJson = await response.json();
+      if(responseJson?.questions?.length) {
+        if(responseJson.questions.length > 4) {
+          return responseJson.questions.slice(0,4);
+        }
+        return responseJson.questions;
+      }
+    } catch (e) {
+      console.error(e)
     }
 
     return questions;
