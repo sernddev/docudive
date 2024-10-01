@@ -530,6 +530,7 @@ export function AssistantEditor({
                   name="system_prompt"
                   label="System Prompt"
                   isTextArea={true}
+                  defaultHeight="h-56"
                   placeholder="e.g. 'You are a professional email writing plugin that always uses a polite enthusiastic tone, emphasizes action items, and leaves blanks for the human to fill in when you have unknowns'"
                   //
                   onChange={(e) => {
