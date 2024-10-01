@@ -13,7 +13,8 @@ from danswer.dynamic_configs.interface import JSON_ro
 from danswer.file_store.models import InMemoryChatFile
 from danswer.llm.answering.prompts.build import AnswerPromptBuilder, default_build_system_message, \
     default_build_user_message
-from danswer.llm.utils import message_to_string, _build_content, get_max_input_tokens, get_default_llm_tokenizer
+from danswer.llm.utils import message_to_string, _build_content, get_max_input_tokens, get_default_llm_tokenizer, \
+    filter_non_english_arabic, filter_chinese_characters
 from danswer.prompts.constants import GENERAL_SEP_PAT
 from danswer.tools.summary.split_by_sentence_tokens import split_section_by_tokens
 from danswer.tools.tool import Tool
@@ -194,9 +195,9 @@ class SummaryGenerationTool(Tool):
             )
             prompt = prompt_builder.build()
 
-            summaries.append( message_to_string(
+            summaries.append(filter_chinese_characters( message_to_string(
                 self.llm.invoke(prompt=prompt)
-            ))
+            )))
 
         yield ToolResponse(
             id=SUMMARY_GENERATION_RESPONSE_ID,
