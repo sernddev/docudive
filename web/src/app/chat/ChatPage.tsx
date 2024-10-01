@@ -26,7 +26,7 @@ import {
   getCitedDocumentsFromMessage,
   getHumanAndAIMessageFromMessageNumber,
   getLastSuccessfulMessageId,
-  getRecommnededQuestions,
+  getRecommendedQuestions,
   handleChatFeedback,
   nameChatSession,
   PacketType,
@@ -1100,7 +1100,7 @@ export function ChatPage({
         assistantId = assistantId && parseInt(assistantId);
         const personaId = selectedAssistant?.id || existingChatSessionPersonaId || assistantId;
         if(assistantInfo?.is_recommendation_supported && files.length && personaId) {
-          getRecommnededQuestions(files[0].id, files[0].name || "", personaId).then((response: string[])=> {
+          getRecommendedQuestions(files[0].id, files[0].name || "", personaId).then((response: string[])=> {
             setQuestions(response);
           })
         }

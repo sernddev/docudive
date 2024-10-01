@@ -593,7 +593,7 @@ export async function uploadFilesForChat(
   return [responseJson.files as FileDescriptor[], null];
 }
 
-export async function getRecommnededQuestions(fileId: string, fileName: string, personaId: number) {
+export async function getRecommendedQuestions(fileId: string, fileName: string, personaId: number) {
     const questions: string[] = [];
     let fileExtension = ""
     if(fileName !== "") {
