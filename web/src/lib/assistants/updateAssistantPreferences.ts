@@ -34,6 +34,8 @@ export async function addAssistantToList(
 }
 
 export async function saveAssistantInfo(assistantId: number, pluginInfo: PluginInfo) {
+  
+  pluginInfo.allowed_file_size = pluginInfo.allowed_file_size ?? undefined;
     
   const requestOptions = {
       method: 'PUT',

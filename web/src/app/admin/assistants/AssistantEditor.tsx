@@ -1052,11 +1052,11 @@ export function AssistantEditor({
                       <TextFormField
                         name="assistants_info.allowed_file_size"
                         tooltip="Allowed file size in MB"
-                        label="Max File Size (MB)"
+                        label="Max File Size (MB) : Default Size is 10 MB"
                         onChange={(e:React.ChangeEvent<HTMLInputElement>)=> {
                           updateAssistantInfo({
                             key: 'allowed_file_size', 
-                            value: e.target.value
+                            value: e.target.value ? e.target.value : null
                           });
                         }}
                         placeholder="eg., 10"
