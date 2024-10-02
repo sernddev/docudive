@@ -1,5 +1,3 @@
-import { isValidImageUrl } from "../fetchUtils";
-
 export async function fetchAssistantIcon(assistantId?:number | null) {
     if(assistantId) {
         const response = await fetch(`/api/settings/image_url/${assistantId}`);

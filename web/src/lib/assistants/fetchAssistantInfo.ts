@@ -1,14 +1,16 @@
 import { PluginInfo } from "@/app/admin/assistants/interfaces";
 import { DEFAULT_ASSISTANT_INFO } from "../constants";
 
-export async function fetchAssistantInfo(assistantId?: string | null): Promise<PluginInfo> {
+export async function fetchAssistantInfo(url:string): Promise<PluginInfo> {
     let assistantInfo: PluginInfo = DEFAULT_ASSISTANT_INFO;
-
-    if (assistantId) {
-        const response = await fetch(`/api/settings/plugin_info/${assistantId}`);
+    try {
+        const response = await fetch(url);
         if (response.ok) {
             assistantInfo = await response.json();
         }
+    } catch(e) {
+        return Promise.resolve(assistantInfo);
     }
-    return assistantInfo;
+    
+    return Promise.resolve(assistantInfo);
 }

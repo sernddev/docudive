@@ -27,6 +27,8 @@ import {
 import { Persona } from "../admin/assistants/interfaces";
 import { ReadonlyURLSearchParams } from "next/navigation";
 import { SEARCH_PARAM_NAMES } from "./searchParams";
+import { isAllowedFileType } from "@/lib/utils";
+import { ALLOWED_FILE_CATEGORY } from "@/lib/constants";
 
 export async function updateModelOverrideForChatSession(
   chatSessionId: number,
@@ -595,9 +597,12 @@ export async function uploadFilesForChat(
 
 export async function getRecommendedQuestions(fileId: string, fileName: string, personaId: number) {
     const questions: string[] = [];
-    let fileExtension = ""
-    if(fileName !== "") {
-      fileExtension = fileName.split('.')[1]
+    const [isAllowedFile, fileExtension] = isAllowedFileType(
+      fileName, 
+      [ALLOWED_FILE_CATEGORY.DOCUMENT, ALLOWED_FILE_CATEGORY.TEXT]
+    );
+    if(!isAllowedFile) {
+      return Promise.reject("File not supported");
     }
     try {
       const response = await fetch(`/api/chat/file/recommend/questions/${fileExtension}/${fileId}/${personaId}`)
@@ -612,10 +617,10 @@ export async function getRecommendedQuestions(fileId: string, fileName: string, 
         return responseJson.questions;
       }
     } catch (e) {
-      console.error(e)
+      return Promise.reject("Request Error");
     }
-
-    return questions;
+    
+  return questions;
 }
 
 export async function useScrollonStream({
