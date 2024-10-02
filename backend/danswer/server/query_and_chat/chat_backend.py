@@ -651,7 +651,7 @@ def recommend_questions(file_extension: str,
                     dataframe = load_to_dataframe(file_content)
                     questions = questions_recommender.recommend(dataframe)
                 else:
-                    str_chunk = extract_first_sentence_by_token(file_content=str(file_content), max_tokens=4000)
+                    str_chunk = extract_first_sentence_by_token(file_content=str(file_content), max_tokens=2000)
                     questions = questions_recommender.recommend_for_unstructured_data(str_chunk)
             else:
                 error = 'System Prompt and Task Prompt is None. Kindly configure them in the plugin.'
