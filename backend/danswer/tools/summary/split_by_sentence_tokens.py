@@ -2,6 +2,11 @@ import tiktoken
 from nltk.tokenize import sent_tokenize
 from collections.abc import Callable
 from collections.abc import Iterator
+from danswer.utils.logger import setup_logger
+
+
+logger = setup_logger()
+
 
 def check_number_of_tokens(text: str) -> int:
     encode_fn = tiktoken.get_encoding("cl100k_base").encode
@@ -83,6 +88,7 @@ def extract_first_sentence_by_token(file_content: str, max_tokens: int = 4000):
             str_chunk = str(str_chunk + sentence)
         else:
             break
+    logger.info(f"Unstructured First sentence: {str_chunk}")
     return str_chunk
 
 
