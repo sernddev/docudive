@@ -392,7 +392,7 @@ export const AIMessage = ({
             </div>
             {handleFeedback && (
             <div className={`flex flex-col md:flex-row gap-x-0.5 ${assistantInfo?.is_arabic? "mr-8":"ml-8"} mt-1.5`}>
-              {false && (<CopyButton content={content.toString()} />)}
+              <CopyButton content={content.toString()} />
               <Hoverable
                 icon={FiThumbsUp}
                 onClick={() => handleFeedback("like")}
