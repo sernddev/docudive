@@ -22,15 +22,17 @@ CONTEXT_TEMPLATE = '''
         2. Generate questions that help a researcher, analyst, or scientist explore relationships, trends, anomalies, or patterns within the input.
         3. Ensure that each question is directly relevant to the information presented in the input.
         4. For structured data (DataFrame):
-           - Questions may relate to data distribution, correlations, potential data quality issues, or specific analyses that could be informative.
+           - Questions may relate to data distribution, correlations, potential data quality issues, or specific analyses that could be informative, etc.
 
            For unstructured content (Text or PDF):
-           - Questions may relate to key themes, potential inconsistencies, missing information, or areas that require further exploration.
+           - Questions may relate to key themes, potential inconsistencies, missing information, or areas that require further exploration, etc.
 
         5. Strictly output the questions in the format: ["Question1?", "Question2?", ...], where each question is a string enclosed in double quotes, starting with a capital letter and ending with a question mark.
         6. The output must be a valid JSON array of strings, without any additional text, headings, or explanations.
-        7. Do not include any additional text, headings, or explanations in response.
+        7. Do not include any additional text, headings, or explanations in response.        
         '''
+
+RESPONSE_START_STR = 'Here are the questions that can be used to further explore the information provided:'
 
 
 @dataclass
@@ -51,7 +53,7 @@ def generate_prompt(prompt_config: PromptConfig, schema: pd.DataFrame.dtypes = N
             raise PromptGenerationException(message="Exception occurred while generating the prompt."
                                                     "Either structured data or unstructured data must be provided.")
         context = context_template.format(data_input=data_input)
-        question = '\n\nPlease read the context carefully and answer precisely.\n\n'
+        question = '\n\nPlease read the context and instructions very carefully and answer precisely in the expected output format with no additional texts.\n\n'
         prompt_template = f"""context: {context}, question: {question}"""
         prompt = prompt_template.format(context=context, question=question)
         logger.info(f'prompt: {prompt}')
@@ -72,7 +74,7 @@ def generate_default_prompt(schema: pd.DataFrame.dtypes = None, structured_data=
             raise PromptGenerationException(message="Exception occurred while generating the prompt."
                                                     "Either structured data or unstructured data must be provided.")
         context = CONTEXT_TEMPLATE.format(data_input=data_input)
-        question = '\n\nPlease read the context carefully and answer precisely.\n\n'
+        question = '\n\n\n\nPlease read the context carefully and answer precisely in the expected output format with no additional texts.\n\n'
         prompt_template = f"""context: {context}, question: {question}"""
         prompt = prompt_template.format(context=context, question=question)
         logger.info(f'prompt: {prompt}')
@@ -97,15 +99,20 @@ class QuestionsRecommenderUsingLLM:
         return self.invoke_llm(prompt=prompt, metadata=metadata)
 
     def recommend_for_unstructured_data(self, text: str, metadata=None):
-        prompt = generate_prompt(schema=None, structured_data=None, unstructured_data=text)
-        return self.invoke_llm(prompt=prompt, metadata=metadata)
+        prompt = generate_prompt(self.prompt_config, schema=None, structured_data=None, unstructured_data=text)
+        response = self.invoke_llm(prompt=prompt, metadata=metadata)
+        logger.info(f'Recommended questions for Unstructured data : {response}')
+        return response
 
     def invoke_llm(self, prompt: str, metadata=None):
         try:
             llm_response = self.llm.invoke(prompt=prompt, metadata=metadata)
             response = llm_response.content
             logger.info(f'LLM suggested questions: {response}')
-            response = response.replace('\n', '')
+            if RESPONSE_START_STR in response:
+                response = response[len(RESPONSE_START_STR):]
+            if '\n' in response:
+                response = response.replace('\n', '')
             response = json.loads(response)
             logger.info(f'JSON formatted response : {response}')
             return response

@@ -16,6 +16,7 @@ export function CopyButton({
       icon={copyClicked ? FiCheck : FiCopy}
       onClick={() => {
         if (content) {
+          document.body.focus();
           navigator.clipboard.writeText(content.toString());
         }
         onClick && onClick();
