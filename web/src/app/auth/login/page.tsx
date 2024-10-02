@@ -91,14 +91,14 @@ const Page = async ({
                 </Title>
               </div>
               <EmailPasswordForm />
-              {false && (<div className="flex">
+              <div className="flex">
                 <Text className="mt-4 mx-auto">
                   Don&apos;t have an account?{" "}
                   <Link href="/auth/signup" className="text-link font-medium">
                     Create an account
                   </Link>
                 </Text>
-              </div>)}
+              </div>
             </Card>
           )}
         </div>
