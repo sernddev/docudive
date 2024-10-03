@@ -62,3 +62,26 @@ export function isAllowedFileType(filename: string, category?: ALLOWED_FILE_CATE
             [false, ""]
     );
   }
+
+export function fallbackCopyTextToClipboard(text: string) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    
+    textArea.style.position = 'fixed';
+    textArea.style.top = '0';
+    textArea.style.left = '0';
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      const successful = document.execCommand('copy');
+      const msg = successful ? 'successful' : 'unsuccessful';
+    } catch (err) {
+      console.error('Fallback: Oops, unable to copy', err);
+    }
+    
+    document.body.removeChild(textArea);
+  }
+  
