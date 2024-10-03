@@ -1126,8 +1126,8 @@ export function ChatPage({
   
       // Check if recommendations are supported and prerequisites are met
       if (assistantInfo?.is_recommendation_supported && files.length > 0 && personaId) {
-        // - We dont recommend for all the files 
-        // - As of now only first file will be taken to generate recommendation
+        // - We dont generate recommendation question for all the uploaded files 
+        // - As of now only first file will be taken to generate recommendation question
         const [firstFile] = files;
   
         if (firstFile?.name) {

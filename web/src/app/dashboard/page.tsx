@@ -58,7 +58,7 @@ export default async function Dashboard() {
                     <div className="flex flex-col items-center min-h-screen p-4">
                         <div className="text-center mb-8">
                             <h1 className="text-4xl font-bold text-gray-800">Welcome</h1>
-                            <p className="text-lg text-gray-600">Please select the plugin you would like to use</p>
+                            <p className="text-default">Please select the plugin you would like to use</p>
                         </div>
                         
                         <AssistantList assistants={initialAssistantsList} icons={assistantIcons} />
