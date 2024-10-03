@@ -76,8 +76,7 @@ export function fallbackCopyTextToClipboard(text: string) {
     textArea.select();
     
     try {
-      const successful = document.execCommand('copy');
-      const msg = successful ? 'successful' : 'unsuccessful';
+      document.execCommand('copy');
     } catch (err) {
       console.error('Fallback: Oops, unable to copy', err);
     }
