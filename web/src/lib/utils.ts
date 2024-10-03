@@ -42,6 +42,10 @@ export function localStorageProviderForSWR(
     },
   };
 }
+
+export function getFileExtension(filename:string) {
+    return filename.split('.').pop()?.toLocaleLowerCase();
+}
   
 export function isAllowedFileType(filename: string, category?: ALLOWED_FILE_CATEGORY[]): [boolean, string] {
   
@@ -50,10 +54,11 @@ export function isAllowedFileType(filename: string, category?: ALLOWED_FILE_CATE
         category:
         ALLOWED_FILE_CATEGORY
     ).join().split(/\s*,\s*/);
-  
-    const allowedExtensions = new RegExp(`\.(${allowedTypes.join('|')})$`, 'i');
-    const matches = filename?.toLowerCase()?.match(allowedExtensions);
-    const extension = matches?.length ? matches[1]: filename.split('.').pop();
-  
-    return [!!matches?.length, extension || ""];
+    const extension = getFileExtension(filename);
+
+    return (
+        extension ? 
+            [allowedTypes.includes(extension), extension]: 
+            [false, ""]
+    );
   }

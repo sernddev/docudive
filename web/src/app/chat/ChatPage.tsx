@@ -70,12 +70,12 @@ import { orderAssistantsForUser } from "@/lib/assistants/orderAssistants";
 import { ChatPopup } from "./ChatPopup";
 import { ChatBanner } from "./ChatBanner";
 import { TbLayoutSidebarRightExpand } from "react-icons/tb";
-import { DEFAULT_ASSISTANT_INFO, getDefaultAssistantIcon, SIDEBAR_WIDTH_CONST } from "@/lib/constants";
+import { ALLOWED_FILE_CATEGORY, DEFAULT_ASSISTANT_INFO, getDefaultAssistantIcon, SIDEBAR_WIDTH_CONST } from "@/lib/constants";
 
 import ResizableSection from "@/components/resizable/ResizableSection";
 import { fetchAssistantInfo } from "@/lib/assistants/fetchAssistantInfo";
 import useSWR, { SWRConfig } from "swr";
-import { isAllowedFileType, localStorageProviderForSWR } from "@/lib/utils";
+import { getFileExtension, isAllowedFileType, localStorageProviderForSWR } from "@/lib/utils";
 
 const TEMP_USER_MESSAGE_ID = -1;
 const TEMP_ASSISTANT_MESSAGE_ID = -2;
@@ -1040,7 +1040,7 @@ export function ChatPage({
     }
   };
 
-  const handleImageUpload = (acceptedFiles: File[]) => {
+  const handleImageUpload = async (acceptedFiles: File[]) => {
     const llmAcceptsImages = checkLLMSupportsImageInput(
       ...getFinalLLM(llmProviders, livePersona, llmOverrideManager.llmOverride)
     );
@@ -1102,27 +1102,52 @@ export function ChatPage({
       );
     };
 
-    uploadFilesForChat(acceptedFiles).then(([files, error]) => {
+    try {
+      const [files, error] = await uploadFilesForChat(acceptedFiles);
+
       if (error) {
+        // Handling upload error 
         setCurrentMessageFiles((prev) => removeTempFiles(prev));
         setPopup({
           type: "error",
           message: error,
         });
-      } else {
-        setCurrentMessageFiles((prev) => [...removeTempFiles(prev), ...files]);
-        let assistantId:any = searchParams.get("assistantId");
-        assistantId = assistantId && parseInt(assistantId);
-        const personaId = selectedAssistant?.id || existingChatSessionPersonaId || assistantId;
-        if(assistantInfo?.is_recommendation_supported && 
-            files.length && personaId 
-        ) {
-          getRecommendedQuestions(files[0].id, files[0].name || "", personaId).then((response: string[])=> {
+        return; // exits on error
+      }
+  
+      // Update current message files with the new files
+      setCurrentMessageFiles((prev) => [...removeTempFiles(prev), ...files]);
+  
+      // Extract and parse assistantId
+      const rawAssistantId = searchParams.get("assistantId");
+      const assistantId = rawAssistantId ? parseInt(rawAssistantId, 10) : null;
+  
+      const personaId = selectedAssistant?.id || existingChatSessionPersonaId || assistantId;
+  
+      // Check if recommendations are supported and prerequisites are met
+      if (assistantInfo?.is_recommendation_supported && files.length > 0 && personaId) {
+        // - We dont recommend for all the files 
+        // - As of now only first file will be taken to generate recommendation
+        const [firstFile] = files;
+  
+        if (firstFile?.name) {
+          const extension = getFileExtension(firstFile?.name);
+  
+          if (extension) {
+            const response = await getRecommendedQuestions(firstFile.id, extension, personaId);
             setQuestions(response);
-          });
+          } else {
+            console.warn(`Unsupported file type for file: ${firstFile.name}`);
+          }
         }
       }
-    });
+    } catch (err) {
+      console.error('An unexpected error occurred during file upload:', err);
+      setPopup({
+        type: "error",
+        message: "An unexpected error occurred. Please try again later.",
+      });
+    }
   };
 
   // handle redirect if chat page is disabled

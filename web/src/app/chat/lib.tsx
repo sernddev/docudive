@@ -595,15 +595,8 @@ export async function uploadFilesForChat(
   return [responseJson.files as FileDescriptor[], null];
 }
 
-export async function getRecommendedQuestions(fileId: string, fileName: string, personaId: number) {
+export async function getRecommendedQuestions(fileId: string, fileExtension: string, personaId: number) {
     const questions: string[] = [];
-    const [isAllowedFile, fileExtension] = isAllowedFileType(
-      fileName, 
-      [ALLOWED_FILE_CATEGORY.DOCUMENT, ALLOWED_FILE_CATEGORY.TEXT]
-    );
-    if(!isAllowedFile) {
-      return Promise.reject("File not supported");
-    }
     try {
       const response = await fetch(`/api/chat/file/recommend/questions/${fileExtension}/${fileId}/${personaId}`)
       if (!response.ok) {
@@ -612,6 +605,7 @@ export async function getRecommendedQuestions(fileId: string, fileName: string, 
       const responseJson = await response.json();
       if(responseJson?.questions?.length) {
         if(responseJson.questions.length > 4) {
+          // Currently we support only 4 recommendation questions to display in UI
           return responseJson.questions.slice(0,4);
         }
         return responseJson.questions;
