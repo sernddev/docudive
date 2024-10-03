@@ -13,6 +13,7 @@ import { Card, Title, Text } from "@tremor/react";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { LoginText } from "./LoginText";
+import { ALLOW_SIGNUP } from "@/lib/constants";
 
 const Page = async ({
   searchParams,
@@ -91,7 +92,7 @@ const Page = async ({
                 </Title>
               </div>
               <EmailPasswordForm />
-              {false && (<div className="flex">
+              {ALLOW_SIGNUP && (<div className="flex">
                 <Text className="mt-4 mx-auto">
                   Don&apos;t have an account?{" "}
                   <Link href="/auth/signup" className="text-link font-medium">

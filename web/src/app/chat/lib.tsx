@@ -27,6 +27,8 @@ import {
 import { Persona } from "../admin/assistants/interfaces";
 import { ReadonlyURLSearchParams } from "next/navigation";
 import { SEARCH_PARAM_NAMES } from "./searchParams";
+import { isAllowedFileType } from "@/lib/utils";
+import { ALLOWED_FILE_CATEGORY } from "@/lib/constants";
 
 export async function updateModelOverrideForChatSession(
   chatSessionId: number,
@@ -593,12 +595,8 @@ export async function uploadFilesForChat(
   return [responseJson.files as FileDescriptor[], null];
 }
 
-export async function getRecommendedQuestions(fileId: string, fileName: string, personaId: number) {
+export async function getRecommendedQuestions(fileId: string, fileExtension: string, personaId: number) {
     const questions: string[] = [];
-    let fileExtension = ""
-    if(fileName !== "") {
-      fileExtension = fileName.split('.')[1]
-    }
     try {
       const response = await fetch(`/api/chat/file/recommend/questions/${fileExtension}/${fileId}/${personaId}`)
       if (!response.ok) {
@@ -607,15 +605,16 @@ export async function getRecommendedQuestions(fileId: string, fileName: string, 
       const responseJson = await response.json();
       if(responseJson?.questions?.length) {
         if(responseJson.questions.length > 4) {
+          // Currently we support only 4 recommendation questions to display in UI
           return responseJson.questions.slice(0,4);
         }
         return responseJson.questions;
       }
     } catch (e) {
-      console.error(e)
+      return Promise.reject("Request Error");
     }
-
-    return questions;
+    
+  return questions;
 }
 
 export async function useScrollonStream({

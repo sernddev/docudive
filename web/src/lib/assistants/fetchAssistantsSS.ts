@@ -1,6 +1,5 @@
 import { Persona } from "@/app/admin/assistants/interfaces";
 import { fetchSS } from "../utilsSS";
-import { isValidImageUrl } from "../fetchUtils";
 
 export type FetchAssistantsResponse = [Persona[], string | null];
 export type FetchAssistantIconsResponse = {[key: string]: string};
