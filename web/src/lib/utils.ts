@@ -11,8 +11,6 @@ export function localStorageProviderForSWR(
   }
 
   const map = new Map<string, State<any, any>>(parsed);
-  // Can removed after set the cached localstorage value back to the map
-  localStorage.removeItem('app-cache'); 
 
   if (cache && cache.keys) {
     const keysArray = Array.from(cache.keys());
