@@ -4,8 +4,10 @@ import { Cache, State } from 'swr';
 export function localStorageProviderForSWR(
   cache: Readonly<Cache<any>>
 ): Cache<State<any, any>> {
-  const appCache = localStorage.getItem('app-cache');
+
   let parsed: [string, State<any, any>][] = [];
+  const appCache = localStorage?.getItem('app-cache');
+
   if (appCache) {
     parsed = JSON.parse(appCache);
   }
@@ -24,7 +26,7 @@ export function localStorageProviderForSWR(
 
   window.addEventListener('beforeunload', () => {
     const appCache = JSON.stringify(Array.from(map.entries()));
-    localStorage.setItem('app-cache', appCache);
+    localStorage?.setItem('app-cache', appCache);
   });
 
   return {
