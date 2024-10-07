@@ -36,7 +36,7 @@ from danswer.db.models import User
 from danswer.db.persona import get_persona_by_id
 from danswer.document_index.document_index_utils import get_both_index_names
 from danswer.document_index.factory import get_default_document_index
-from danswer.file_processing.extract_file_text import extract_file_text
+from danswer.file_processing.extract_file_text import extract_file_text, get_file_ext
 from danswer.file_store.file_store import get_default_file_store
 from danswer.file_store.models import ChatFileType
 from danswer.file_store.models import FileDescriptor
@@ -583,6 +583,13 @@ def upload_files_for_chat(
                 file_origin=FileOrigin.CHAT_UPLOAD,
                 file_type="text/plain",
             )
+
+        extension = get_file_ext(file.filename)
+
+        if extension== ".xlsx" or extension== ".csv":
+            file_info.append((file_id, file.filename, file_type))
+
+        elif file_type == ChatFileType.DOC:
             # for DOC type, just return this for the FileDescriptor
             # as we would always use this as the ID to attach to the
             # message

@@ -224,6 +224,9 @@ class ExcelAnalyzerTool(Tool):
 
         if file:
             dataframe = generate_dataframe_from_excel(file)
+            if not isinstance(dataframe, pd.DataFrame):
+                return dataframe
+
             dataframe = load_and_convert_types(dataframe)
 
             quer_with_schema = self.get_schema_with_prompt(dataframe, query)
@@ -256,6 +259,9 @@ class ExcelAnalyzerTool(Tool):
             if response.data is None and not response.has_min_max():
                 tool_output += f"\n\nData Preview : \n\n{dataframe_to_markdown_bold_header(dataframe.head(5))}"
 
+            if isinstance(response.data, pd.DataFrame):
+                tool_output += f"\n\nResults : \n\n{dataframe_to_markdown_bold_header(response.data.head(10))}"
+
             yield ToolResponse(
                 id=EXCEL_ANALYZER_RESPONSE_ID,
                 response=tool_output
@@ -265,10 +271,6 @@ class ExcelAnalyzerTool(Tool):
             id=EXCEL_ANALYZER_RESPONSE_ID,
             response="Please upload file"
         )
-
-
-
-
 
     def log_response_data(self, response):
         data = response.data
@@ -313,62 +315,9 @@ class ExcelAnalyzerTool(Tool):
             return "concise"
 
     def get_dataframe_preview(self, dataframe):
-        #return f"{dataframe_to_markdown_bold_header(dataframe.head(10))}"
-        return f"{dataframe.to_json(orient='records')}"
-
-    import pandas as pd
-
-    def trim_dataframe_to_max_tokens(df: pd.DataFrame, max_token_length: int = 1000) -> pd.DataFrame:
-
-        total_rows = len(df)
-
-        # Set dynamic batch size based on the number of rows in the DataFrame
-        if total_rows > 1000:
-            batch_size = 100
-        elif total_rows <= 100:
-            batch_size = 10
-        else:
-            batch_size = total_rows // 10  # proportionally adjust batch size
-
-        token_count = 0
-        rows_to_include = []
-
-        text = ''
-        sent = text.split(' ')
-        final_str= ""
-        noof=0;
-        for s in sent:
-            noof+= check_number_of_tokens(s)
-            if(noof<max_token_length):
-                final_str += s
-
-
-        # Process the DataFrame in batches
-        for i in range(0, total_rows, batch_size):
-            batch = df.iloc[i:i + batch_size]
-            batch_string = batch.to_string()  # Convert the batch to string
-            batch_tokens = check_number_of_tokens(batch_string)
-
-            if token_count + batch_tokens <= max_token_length:
-                rows_to_include.extend(batch.to_dict('records'))
-                token_count += batch_tokens
-            else:
-                # Process row by row within the batch to fit under the limit
-                for _, row in batch.iterrows():
-                    row_string = row.to_string()
-                    row_tokens = check_number_of_tokens(row_string)
-
-                    if token_count + row_tokens <= max_token_length:
-                        rows_to_include.append(row.to_dict())
-                        token_count += row_tokens
-                    else:
-                        break
-                break
-
-        # Create new DataFrame with the included rows
-        trimmed_df = pd.DataFrame(rows_to_include)
-
-        return trimmed_df
+        # return f"{dataframe_to_markdown_bold_header(dataframe.head(10))}"
+        # return f"{dataframe.head(5).to_json(orient='records')}"
+        return f"{dataframe.to_csv(index=False, header=True)}"
 
     def generate_analyze_prompt(self, response, query, schema, original_dataset: pd.DataFrame):
 
@@ -377,7 +326,7 @@ class ExcelAnalyzerTool(Tool):
         )
 
         if ((response.data is None and not response.has_min_max()) or
-                (isinstance(response.data, pd.DataFrame) and len(response.data)==0)):
+                (isinstance(response.data, pd.DataFrame) and len(response.data) == 0)):
             analzye_prompt = (
                 f"This is the user query: {query}. "
                 "No valid data was fetched. Please ask user to re-write the question, make this very short and "
@@ -386,7 +335,7 @@ class ExcelAnalyzerTool(Tool):
                 f"dont tell user these are simple questions),"
                 f"dont generate any source code,  just generate questions  based on this schema:{schema}, "
                 f"and ask user to try"
-                f"\n\n Data Preview in json format: {self.get_dataframe_preview(original_dataset.head(5))},"
+                f"\n\n Data Preview in csv format: {self.get_dataframe_preview(original_dataset.head(5))},"
             )
             return analzye_prompt
 
@@ -403,16 +352,16 @@ class ExcelAnalyzerTool(Tool):
             if isinstance(response.data, pd.DataFrame):
                 type_of_data = 'dataframe'
                 if len(response.data) > 10:
-                    temp_data = (f"\n\n ''' {self.get_dataframe_preview(response.data)} '''"
-                                 f" \n\nInform user your displaying only few records matches for the given query., "
+                    # temp_data = (f"\n\n ''' {self.get_dataframe_preview(response.data.head(5))} '''"
+                    temp_data = (f" \n\nInform user your displaying only few records matches for the given query., "
                                  f"total records for the query is: {len(response.data)}")
                 else:
-                    temp_data = self.get_dataframe_preview(response.data)
+                    temp_data = response.data
             elif isinstance(response.data, pd.Series):
                 type_of_data = 'series'
-                temp_data = (f"sample data points first and last 5: \n\n{self.get_dataframe_preview(response.data.head(10))}."
-                             f"\n\n Inform user, this is small set of data, full data is not included in report"
-                             f"\n\nTotal records for the query is: {len(response.data)}")
+                temp_data = (
+                    f"\n\n Inform user, this is small set of data, full data is not included in report"
+                    f"\n\nTotal records for the query is: {len(response.data)}")
             else:
                 type_of_data = 'single_value'
                 temp_data = str(response.data)
@@ -427,9 +376,9 @@ class ExcelAnalyzerTool(Tool):
             if type_of_data == 'dataframe':
                 analzye_prompt += (
                     f"{report_text} "
-                    f"This is the user query: {query}. "
-                    f"Total record count for the user query: {len(response.data)} out of total records in given data {len(original_dataset)}."
-                    f"Answer for user query in markdown format: \n{temp_data}"
+                    f"User query: {query}. "
+                    f"\nTotal record count for the user query: {len(response.data)} out of total records in given data {len(original_dataset)}."
+                    f"\nResponse for user query (in csv format): \n{temp_data}"
                 )
             elif type_of_data == 'series':
                 analzye_prompt += (
@@ -443,7 +392,6 @@ class ExcelAnalyzerTool(Tool):
                     f"This is the user query: {query}. "
                     f"Answer for user query: {temp_data}"
                 )
-
 
         logger.info(analzye_prompt)
 
