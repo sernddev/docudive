@@ -125,6 +125,7 @@ class DocumentIndexType(str, Enum):
 class AuthType(str, Enum):
     DISABLED = "disabled"
     BASIC = "basic"
+    LDAP = "ldap"
     GOOGLE_OAUTH = "google_oauth"
     OIDC = "oidc"
     SAML = "saml"

@@ -41,6 +41,10 @@ PUBLIC_ENDPOINT_SPECS = [
     # oauth
     ("/auth/oauth/authorize", {"GET"}),
     ("/auth/oauth/callback", {"GET"}),
+    #ldap
+    ("/auth/ldap/authorize", {"GET"}),
+    ("/auth/ldap/callback", {"POST"}),
+    ("/auth/ldap/logout", {"POST"}),
     # Public endpoint for serving icons
     ("/static", {"GET"}),
     ("/static/icons/{file_path:path}", {"GET"})  # Allow all subpaths under /icons

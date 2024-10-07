@@ -64,7 +64,7 @@ logger = setup_logger()
 
 
 def verify_auth_setting() -> None:
-    if AUTH_TYPE not in [AuthType.DISABLED, AuthType.BASIC, AuthType.GOOGLE_OAUTH]:
+    if AUTH_TYPE not in [AuthType.DISABLED, AuthType.BASIC,AuthType.LDAP, AuthType.GOOGLE_OAUTH]:
         raise ValueError(
             "User must choose a valid user authentication method: "
             "disabled, basic, or google_oauth"
@@ -89,7 +89,7 @@ def get_display_email(email: str | None, space_less: bool = False) -> str:
 def user_needs_to_be_verified() -> bool:
     # all other auth types besides basic should require users to be
     # verified
-    return AUTH_TYPE != AuthType.BASIC or REQUIRE_EMAIL_VERIFICATION
+    return (AUTH_TYPE != AuthType.BASIC and AUTH_TYPE != AuthType.LDAP) or REQUIRE_EMAIL_VERIFICATION
 
 
 def verify_email_in_whitelist(email: str) -> None:
