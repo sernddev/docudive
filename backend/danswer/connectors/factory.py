@@ -12,6 +12,8 @@ from danswer.connectors.confluence.connector import ConfluenceConnector
 from danswer.connectors.danswer_jira.connector import JiraConnector
 from danswer.connectors.discourse.connector import DiscourseConnector
 from danswer.connectors.document360.connector import Document360Connector
+from danswer.connectors.fileshare.connector import FileShareConnector
+
 from danswer.connectors.dropbox.connector import DropboxConnector
 from danswer.connectors.file.connector import LocalFileConnector
 from danswer.connectors.github.connector import GithubConnector
@@ -78,6 +80,7 @@ def identify_connector_class(
         DocumentSource.LINEAR: LinearConnector,
         DocumentSource.HUBSPOT: HubSpotConnector,
         DocumentSource.DOCUMENT360: Document360Connector,
+        DocumentSource.FILESHARE: FileShareConnector,
         DocumentSource.GONG: GongConnector,
         DocumentSource.GOOGLE_SITES: GoogleSitesConnector,
         DocumentSource.ZENDESK: ZendeskConnector,

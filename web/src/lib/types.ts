@@ -191,6 +191,10 @@ export interface FileConfig {
   file_locations: string[];
 }
 
+export interface FileShareConfig {
+  folder_Path: string;
+}
+
 export interface ZulipConfig {
   realm_name: string;
   realm_url: string;

@@ -43,6 +43,9 @@ def source_to_github_img_link(source: DocumentSource) -> str | None:
         return "https://raw.githubusercontent.com/danswer-ai/danswer/main/web/public/HubSpot.png"
     if source == DocumentSource.DOCUMENT360.value:
         return "https://raw.githubusercontent.com/danswer-ai/danswer/main/web/public/Document360.png"
+    if source == DocumentSource.FILESHARE.value:
+        # just use file icon for now
+        return "https://raw.githubusercontent.com/danswer-ai/danswer/main/web/public/Document360.png"
     if source == DocumentSource.BOOKSTACK.value:
         return "https://raw.githubusercontent.com/danswer-ai/danswer/main/web/public/Bookstack.png"
     if source == DocumentSource.LOOPIO.value:

@@ -87,6 +87,7 @@ class DocumentSource(str, Enum):
     LINEAR = "linear"
     HUBSPOT = "hubspot"
     DOCUMENT360 = "document360"
+    FILESHARE = "fileshare"
     GONG = "gong"
     GOOGLE_SITES = "google_sites"
     ZENDESK = "zendesk"
