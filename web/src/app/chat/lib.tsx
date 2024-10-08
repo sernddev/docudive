@@ -122,56 +122,68 @@ export async function* sendMessage({
   const documentsAreSelected =
     selectedDocumentIds && selectedDocumentIds.length > 0;
 
-  const sendMessageResponse = await fetch("/api/chat/send-message", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      alternate_assistant_id: alternateAssistantId,
-      chat_session_id: chatSessionId,
-      parent_message_id: parentMessageId,
-      message: message,
-      prompt_id: promptId,
-      search_doc_ids: documentsAreSelected ? selectedDocumentIds : null,
-      file_descriptors: fileDescriptors,
-      retrieval_options: !documentsAreSelected
-        ? {
-            run_search:
-              promptId === null ||
-              promptId === undefined ||
-              queryOverride ||
-              forceSearch
-                ? "always"
-                : "auto",
-            real_time: true,
-            filters: filters,
-          }
-        : null,
-      query_override: queryOverride,
-      prompt_override: systemPromptOverride
-        ? {
-            system_prompt: systemPromptOverride,
-          }
-        : null,
-      llm_override:
-        temperature || modelVersion
-          ? {
-              temperature,
-              model_provider: modelProvider,
-              model_version: modelVersion,
-            }
-          : null,
-      use_existing_user_message: useExistingUserMessage,
-    }),
-  });
-  if (!sendMessageResponse.ok) {
-    const errorJson = await sendMessageResponse.json();
-    const errorMsg = errorJson.message || errorJson.detail || "";
-    throw Error(`Failed to send message - ${errorMsg}`);
-  }
-
-  yield* handleStream<PacketType>(sendMessageResponse);
+    try {
+      const sendMessageResponse = await fetch("/api/chat/send-message", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          alternate_assistant_id: alternateAssistantId,
+          chat_session_id: chatSessionId,
+          parent_message_id: parentMessageId,
+          message: message,
+          prompt_id: promptId,
+          search_doc_ids: documentsAreSelected ? selectedDocumentIds : null,
+          file_descriptors: fileDescriptors,
+          retrieval_options: !documentsAreSelected
+            ? {
+                run_search:
+                  promptId === null ||
+                  promptId === undefined ||
+                  queryOverride ||
+                  forceSearch
+                    ? "always"
+                    : "auto",
+                real_time: true,
+                filters: filters,
+              }
+            : null,
+          query_override: queryOverride,
+          prompt_override: systemPromptOverride
+            ? {
+                system_prompt: systemPromptOverride,
+              }
+            : null,
+          llm_override:
+            temperature || modelVersion
+              ? {
+                  temperature,
+                  model_provider: modelProvider,
+                  model_version: modelVersion,
+                }
+              : null,
+          use_existing_user_message: useExistingUserMessage,
+        }),
+      });
+      if (!sendMessageResponse.ok) {
+        const errorJson = await sendMessageResponse.json();
+        const errorMsg = errorJson.message || errorJson.detail || "";
+        throw Error(`Failed to send message - ${errorMsg}`);
+      }
+    
+      yield* handleStream<PacketType>(sendMessageResponse);
+    } catch (error: any) {
+      console.error("Error during sendMessage:", error);
+  
+      if (error.name === "AbortError") {
+        throw new Error("The request was aborted by the client.");
+      } else if (error.message.includes("NetworkError")) {
+        throw new Error("Network error: Please check your connection.");
+      } else {
+        throw new Error(error.message || "An unexpected error occurred while sending the message.");
+      }
+    }
 }
 
 export async function nameChatSession(chatSessionId: number, message: string) {
