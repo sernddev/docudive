@@ -6,7 +6,7 @@ from danswer.tools.infographics.plot_charts import generate_chart_and_save, find
 from danswer.tools.infographics.resolve_plot_type_parameters_generate_execute_code_using_llm import \
     ResolvePlotTypeAndParametersAndGenerateExecuteCodeUsingLLM
 from danswer.tools.questions_recommender.recomend_questions_using_llm import PromptConfig
-from danswer.tools.utils import load_to_dataframe
+from danswer.tools.utils import generate_dataframe_from_excel
 from danswer.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -31,7 +31,7 @@ class PlotSummarizeGenerateSQL:
                                                                                          prompt_config=prompt_config)
 
     def generate_execute_sql_dataframe(self, file, query, metadata) -> tuple:
-        dataframe = load_to_dataframe(file.content)
+        dataframe = generate_dataframe_from_excel(file)
         return self.generate_execute_self_correct_sql(dataframe, query, metadata)
 
     def generate_execute_self_correct_sql(self, dataframe, query, metadata):
