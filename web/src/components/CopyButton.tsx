@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FiCheck, FiCopy } from "react-icons/fi";
 import { Hoverable } from "./Hoverable";
+import { fallbackCopyTextToClipboard } from "@/lib/utils";
 
 export function CopyButton({
   content,
@@ -16,8 +17,11 @@ export function CopyButton({
       icon={copyClicked ? FiCheck : FiCopy}
       onClick={() => {
         if (content) {
-          document.body.focus();
-          navigator.clipboard.writeText(content.toString());
+          if(navigator.clipboard) {
+            navigator.clipboard.writeText(content.toString());
+          } else {
+            fallbackCopyTextToClipboard(content.toString());
+          }
         }
         onClick && onClick();
 
