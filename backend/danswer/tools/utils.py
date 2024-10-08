@@ -7,6 +7,7 @@ from tiktoken import Encoding
 from danswer.file_processing.extract_file_text import get_file_ext
 from danswer.file_store.models import InMemoryChatFile
 from danswer.llm.utils import get_default_llm_tokenizer
+from danswer.tools.infographics.exceptions import DataframeGenerationException
 from danswer.tools.tool import Tool
 from danswer.utils.logger import setup_logger
 
@@ -66,8 +67,22 @@ def get_current_or_previous_files(files, history):
     return fs
 
 
-def load_to_dataframe(content):
-    excel_byte_stream = BytesIO(content)
-    dataframe = pd.read_csv(excel_byte_stream)
+def load_to_dataframe(byte_stream: BytesIO, extension):
+    try:
+        # excel_byte_stream = BytesIO(content)
+        byte_stream.seek(0)
+        if extension in ['xls', 'xlsx', 'xlsm', 'xlsb', 'xltx', 'xltm']:
+            dataframe = pd.read_excel(byte_stream, engine="openpyxl")
+        elif extension in ["csv"]:
+            dataframe = pd.read_csv(byte_stream)
+        else:
+            raise DataframeGenerationException("File format not supported."
+                                               "Supported file formats for structured data are 'xls', 'xlsx', 'xlsm', 'xlsb', 'xltx', 'xltm', 'csv'")
+    except Exception as e:
+        if isinstance(e, DataframeGenerationException):
+            raise e
+        else:
+            raise DataframeGenerationException("File format not supported."
+                                               "Supported file formats for structured data are 'xls', 'xlsx', 'xlsm', 'xlsb', 'xltx', 'xltm', 'csv'")
     logger.info(f'Content loaded to the dataframe : \n{dataframe.dtypes}\n')
     return dataframe

@@ -46,7 +46,7 @@ from danswer.llm.answering.prompts.citations_prompt import (
 from danswer.llm.exceptions import GenAIDisabledException
 from danswer.llm.factory import get_default_llms, get_llms_for_persona
 from danswer.llm.headers import get_litellm_additional_request_headers
-from danswer.llm.utils import get_default_llm_tokenizer, get_max_input_tokens
+from danswer.llm.utils import get_default_llm_tokenizer
 from danswer.secondary_llm_flows.chat_session_naming import (
     get_renamed_conversation_name,
 )
@@ -66,9 +66,9 @@ from danswer.server.query_and_chat.models import RenameChatSessionResponse
 from danswer.server.query_and_chat.models import SearchFeedbackRequest
 from danswer.server.query_and_chat.models import UpdateChatSessionThreadRequest
 from danswer.server.query_and_chat.token_limit import check_token_rate_limits
-from danswer.server.settings.models import PluginInfoStore
 from danswer.server.settings.store import load_plugin_info
 from danswer.tools.email.send_email import EmailService
+from danswer.tools.infographics.exceptions import DataframeGenerationException
 from danswer.tools.questions_recommender.exceptions import PromptGenerationException
 from danswer.tools.summary.split_by_sentence_tokens import extract_first_sentence_by_token
 from danswer.tools.utils import load_to_dataframe
@@ -653,21 +653,22 @@ def recommend_questions(file_extension: str,
                 questions_recommender = QuestionsRecommenderUsingLLM(llm, llm.config, prompt_config)
                 file_store = get_default_file_store(db_session)
                 file_io = file_store.read_file(file_id, mode="b")
-                file_content = file_io.read()
                 if file_extension in ['xls', 'xlsx', 'xlsm', 'xlsb', 'xltx', 'xltm', 'csv']:
-                    dataframe = load_to_dataframe(file_content)
+                    dataframe = load_to_dataframe(byte_stream=file_io, extension=file_extension)
                     questions = questions_recommender.recommend(dataframe)
                 else:
-                    str_chunk = extract_first_sentence_by_token(file_content=str(file_content), max_tokens=2000)
+                    str_chunk = extract_first_sentence_by_token(file_content=str(file_io.read()), max_tokens=2000)
                     questions = questions_recommender.recommend_for_unstructured_data(str_chunk)
             else:
                 error = 'System Prompt and Task Prompt is None. Kindly configure them in the plugin.'
         else:
             error = 'Recommendation not supported. Kindly enable it and configure the recommendation prompt in the plugin.'
-    except (GenAIDisabledException, PromptGenerationException, Exception) as e:
+    except (GenAIDisabledException, PromptGenerationException, DataframeGenerationException, Exception) as e:
         logger.error(f'Exception received while executing recommend_questions: {e}')
         if isinstance(e, PromptGenerationException):
             error = 'Exception occurred while generating prompt. Please check and modify the prompt.'
+        elif isinstance(e, DataframeGenerationException):
+            error = 'Exception occurred while generating dataframe. Please check the uploaded file and it\'s content.'
         else:
             error = 'Exception received while executing question recommendations.'
 
