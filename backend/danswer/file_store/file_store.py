@@ -181,9 +181,7 @@ class DiskBackedFileStore(FileStore):
     def read_file(
         self, file_name: str, mode: str | None = "rb", use_tempfile: bool = False
     ) -> IO:
-        file_record = get_pgfilestore_by_file_name(
-            file_name=file_name, db_session=self.db_session
-        )
+
         file_path = self.file_storage_directory / file_name
 
         if not file_path.exists():
