@@ -309,3 +309,6 @@ CUSTOM_ANSWER_VALIDITY_CONDITIONS = json.loads(
 ENTERPRISE_EDITION_ENABLED = (
         os.environ.get("ENABLE_PAID_ENTERPRISE_EDITION_FEATURES", "").lower() == "true"
 )
+
+LDAP_SERVER = os.environ.get("LDAP_SERVER") or "ldap://dc01.int.taqniat.ae"
+LDAP_DOMAIN = os.environ.get("LDAP_DOMAIN") or "int.taqniat.ae"

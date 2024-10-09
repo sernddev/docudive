@@ -52,6 +52,7 @@ from danswer.db.auth import get_user_db
 from danswer.db.engine import get_session
 from danswer.db.models import AccessToken
 from danswer.db.models import User
+from danswer.auth.ldap.ldap import get_ldap_auth_router
 from danswer.utils.logger import setup_logger
 from danswer.utils.telemetry import optional_telemetry
 from danswer.utils.telemetry import RecordType
@@ -273,6 +274,12 @@ class FastAPIUserWithLogoutRouter(FastAPIUsers[models.UP, models.ID]):
             return await backend.logout(strategy, user, token)
 
         return router
+
+    def get_ldap_auth_router(
+            self,
+            backend: AuthenticationBackend
+    ) -> APIRouter:
+        return get_ldap_auth_router(self, backend= backend)
 
 
 fastapi_users = FastAPIUserWithLogoutRouter[User, uuid.UUID](

@@ -99,7 +99,6 @@ from danswer.utils.variable_functionality import set_is_ee_based_on_env_variable
 from shared_configs.configs import ENABLE_RERANKING_REAL_TIME_FLOW
 from shared_configs.configs import MODEL_SERVER_HOST
 from shared_configs.configs import MODEL_SERVER_PORT
-from danswer.auth.ldap import ldap #router as ldap_router
 
 
 logger = setup_logger()
@@ -339,8 +338,17 @@ def get_application() -> FastAPI:
             tags=["users"],
         )
     elif AUTH_TYPE == AuthType.LDAP:
-        include_router_with_global_prefix_prepended(application, ldap.router,
-      
+        include_router_with_global_prefix_prepended(
+            application,
+            fastapi_users.get_ldap_auth_router(auth_backend),
+            prefix="/auth",
+            tags=["auth"],
+        )
+        include_router_with_global_prefix_prepended(
+            application,
+            fastapi_users.get_logout_router(auth_backend),
+            prefix="/auth",
+            tags=["auth"],
         )
     elif AUTH_TYPE == AuthType.GOOGLE_OAUTH:
         oauth_client = GoogleOAuth2(OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET)
