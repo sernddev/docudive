@@ -14,6 +14,8 @@ from pydantic import BaseModel
 from pydantic import EmailStr
 from sqlalchemy.orm import Session
 
+from danswer.auth.ldap.ldap_with_details import LDAPResponseModel
+from danswer.auth.ldap_with_details import LDAPAuthenticator
 from danswer.auth.schemas import UserCreate
 from danswer.auth.schemas import UserRole
 from danswer.auth.users import get_user_manager
@@ -24,34 +26,12 @@ from danswer.db.engine import get_async_session
 from danswer.db.engine import get_session
 from danswer.db.models import User
 from danswer.utils.logger import setup_logger
-from ee.danswer.db.saml import expire_saml_account
-from ee.danswer.db.saml import get_saml_account
-from ee.danswer.db.saml import upsert_saml_account
-from ee.danswer.utils.secrets import encrypt_string
-from ee.danswer.utils.secrets import extract_hashed_cookie
-
+from ee.danswer.db.saml import upsert_saml_account, get_saml_account, expire_saml_account
+from ee.danswer.utils.secrets import encrypt_string, extract_hashed_cookie
 
 logger = setup_logger()
 router = APIRouter(prefix="/auth/ldap")
 
-class LdapLogin_Auth:
-    def login(self):
-
-        return LDAPAuthorizeResponse()
-
-    def process_response(self):
-        pass
-
-    def get_errors(self):
-        pass
-
-    def is_authenticated(self):
-        return True
-
-    def get_attribute(self, param):
-        # get email from AD and send here
-        email="test@tect.com"
-        return  email
 
 
 async def upsert_ldap_user(email: str) -> User:
@@ -113,54 +93,41 @@ async def prepare_from_fastapi_request(request: Request) -> dict[str, Any]:
     if "RelayState" in form_data:
         RelayState = form_data["RelayState"]
         rv["post_data"]["RelayState"] = RelayState
+
+        # Parse the request body (JSON) if present
+    try:
+        json_body = await request.json()
+        rv["body_data"].update(json_body)
+    except Exception:
+        # If body is not JSON, skip
+        pass
     return rv
 
 
-class LDAPAuthorizeResponse(BaseModel):
-    authorization_url: str
 
 
-@router.get("/authorize")
-async def ldap_login(request: Request) -> LDAPAuthorizeResponse:
+
+@router.post("/authorize")
+async def ldap_login(request: Request) -> LDAPResponseModel:
     req: dict[str, Any] = await prepare_from_fastapi_request(request)
-    auth = LdapLogin_Auth(req)
-    callback_url = auth.login()
-    return LDAPAuthorizeResponse(authorization_url=callback_url)
+    server = "get it from env"
+    domain = "get it from env"
+    auth = LDAPAuthenticator(server_address=server, domain=domain)
+    response = auth.login()
 
-
-@router.post("/callback")
-async def ldap_login_callback(
-    request: Request,
-    db_session: Session = Depends(get_session),
-) -> Response:
-    req = await prepare_from_fastapi_request(request)
-    auth = LdapLogin_Auth(req)
-    auth.process_response()
-    errors = auth.get_errors()
-    if len(errors) != 0:
-        logger.error(
-            "Error when processing LDAP Response: %s %s"
-            % (", ".join(errors), auth.get_last_error_reason())
-        )
+    if not response.is_authenticated:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Failed to login using LDAP.",
-        )
+            detail="login failed",
+        ) # return error login failed
 
-    if not auth.is_authenticated():
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. User was not Authenticated.",
-        )
-
-    user_email = auth.get_attribute("email")
+    user_email = response.email
     if not user_email:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="LDAP is not set up correctly, email attribute must be provided.",
         )
 
-    user_email = user_email[0]
 
     user = await upsert_ldap_user(email=user_email)
 
@@ -168,7 +135,8 @@ async def ldap_login_callback(
     session_cookie = secrets.token_hex(16)
     saved_cookie = encrypt_string(session_cookie)
 
-    upsert_saml_account(user_id=user.id, cookie=saved_cookie, db_session=db_session)
+    #uncomment below code
+    #upsert_saml_account(user_id=user.id, cookie=saved_cookie, db_session=db_session)
 
     # Redirect to main Danswer search page
     response = Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -180,6 +148,19 @@ async def ldap_login_callback(
         secure=True,
         max_age=SESSION_EXPIRE_TIME_SECONDS,
     )
+
+
+    return response
+
+
+@router.post("/callback")
+async def ldap_login_callback(
+    request: Request,
+    db_session: Session = Depends(get_session),
+) :
+    req = await prepare_from_fastapi_request(request)
+
+    responses = "this is not require callback, will be disabled"
 
     return response
 

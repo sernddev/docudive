@@ -42,7 +42,7 @@ PUBLIC_ENDPOINT_SPECS = [
     ("/auth/oauth/authorize", {"GET"}),
     ("/auth/oauth/callback", {"GET"}),
     #ldap
-    ("/auth/ldap/authorize", {"GET"}),
+    ("/auth/ldap/authorize", {"POST"}),
     ("/auth/ldap/callback", {"POST"}),
     ("/auth/ldap/logout", {"POST"}),
     # Public endpoint for serving icons

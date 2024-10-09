@@ -2,14 +2,11 @@ from ldap3 import Server, Connection, ALL, NTLM
 import getpass
 import os
 from dotenv import load_dotenv
-
-# Load .env file
-load_dotenv()
+from pydantic import BaseModel
 
 
-class LDAPResponseModel:
-    def __init__(self, is_authenticated=False, error_msg=None, full_name=None, first_name=None, email=None,
-                 login_id=None):
+class LDAPResponseModel(BaseModel):
+    def __init__(self, is_authenticated=False, error_msg=None, full_name=None, first_name=None, email=None, login_id=None):
         self.is_authenticated = is_authenticated
         self.error_msg = error_msg
         self.full_name = full_name
@@ -22,21 +19,37 @@ class LDAPResponseModel:
 
 
 class LDAPAuthenticator:
+
     def __init__(self, server_address, domain):
         self.server_address = server_address
         self.domain = domain
         self.ldap_search_base = self._domain_to_ldap_format(domain)
+        self.response = LDAPResponseModel()
+
+    def login(self, username, password):
+        return self.authenticate(username, password)
+
+    def process_response(self):
+        pass
+
+    def get_errors(self):
+        pass
+
+    def is_authenticated(self):
+        return True
+
+    def get_attribute(self, param):
+        # get email from AD and send here
+        email = "test@tect.com"
+        return email
 
     def _domain_to_ldap_format(self, domain):
         """Convert a domain like 'int.mydomain.com' into 'DC=int,DC=mydomain,DC=com'."""
         parts = domain.split('.')
         return ','.join([f"DC={part}" for part in parts])
 
-    def login(self, username, password) -> LDAPResponseModel:
-        return self.authenticate(username, password)
+    def authenticate(self, username, password):
 
-    def authenticate(self, username, password) -> LDAPResponseModel:
-        response = LDAPResponseModel(login_id=username)
         try:
             # NTLM format requires DOMAIN\username
             user_dn = f"{self.domain.split('.')[0]}\\{username}"  # 'int' part of 'int.mydomain.com'
@@ -49,7 +62,7 @@ class LDAPAuthenticator:
 
             # Attempt to bind (authenticate)
             if conn.bind():
-                response.is_authenticated = True
+                self.response.is_authenticated = True
 
                 # Fetch the full name, first name, and email from LDAP
                 conn.search(search_base=self.ldap_search_base,
@@ -57,24 +70,26 @@ class LDAPAuthenticator:
                             attributes=['cn', 'givenName', 'mail'])
 
                 if conn.entries:
-                    response.full_name = conn.entries[0]['cn']
-                    response.first_name = conn.entries[0]['givenName']
-                    response.email = conn.entries[0]['mail']
+                    self.response.full_name = conn.entries[0]['cn']
+                    self.response.first_name = conn.entries[0]['givenName']
+                    self.response.email = conn.entries[0]['mail']
             else:
-                response.is_authenticated = False
-                response.error_msg = conn.result.get('description', 'Authentication failed')
+                self.response.is_authenticated = False
+                self.response.error_msg = conn.result.get('description', 'Authentication failed')
 
         except Exception as e:
-            response.is_authenticated = False
-            response.error_msg = str(e)
+            self.response.is_authenticated = False
+            self.response.error_msg = str(e)
 
-        return response
+        return self.response
 
 
 def main():
     # Read configuration from the .env file
     ldap_server = "ldap://dc01.int.taqniat.ae"
     domain = "int.taqniat.ae"
+
+
 
     if not ldap_server or not domain:
         print("Error: Missing LDAP_SERVER or DOMAIN in .env file.")
