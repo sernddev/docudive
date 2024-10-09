@@ -42,8 +42,7 @@ PUBLIC_ENDPOINT_SPECS = [
     ("/auth/oauth/authorize", {"GET"}),
     ("/auth/oauth/callback", {"GET"}),
     # Public endpoint for serving icons
-    ("/static", {"GET"}),
-    ("/static/icons/{file_path:path}", {"GET"})  # Allow all subpaths under /icons
+    ("/static/{file_path:path}", {"GET"})  # Allow all subpaths under /static
 ]
 
 

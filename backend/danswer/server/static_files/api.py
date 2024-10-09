@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 from datetime import datetime
 from hashlib import md5
 from danswer.utils.logger import setup_logger
-from danswer.configs.app_configs import ICON_DIRECTORY
+from danswer.configs.app_configs import STATIC_DIRECTORY
 
 logger = setup_logger()
 basic_router = APIRouter(prefix="/static")
@@ -13,25 +13,25 @@ basic_router = APIRouter(prefix="/static")
 # Supported image types
 SUPPORTED_EXTENSIONS = {".png", ".svg", ".jpeg", ".jpg"}
 
-@basic_router.get("/icons/{file_path:path}")
+@basic_router.get("/{file_path:path}")
 async def serve_icon(file_path: str, request: Request, response: Response):
     # Build the full path (including subfolders)
-    icon_path = os.path.join(ICON_DIRECTORY, file_path)
+    image_path = os.path.join(STATIC_DIRECTORY, file_path)
 
     # Check file extension is supported
-    if not os.path.exists(icon_path):
-        raise HTTPException(status_code=404, detail="Icon not found")
+    if not os.path.exists(image_path):
+        raise HTTPException(status_code=404, detail="Image not found")
 
     file_extension = os.path.splitext(file_path)[-1].lower()
     if file_extension not in SUPPORTED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Unsupported file type")
 
     # Get the last modified time of the file
-    last_modified = os.path.getmtime(icon_path)
+    last_modified = os.path.getmtime(image_path)
     last_modified_datetime = datetime.utcfromtimestamp(last_modified)
     last_modified_str = last_modified_datetime.strftime('%a, %d %b %Y %H:%M:%S GMT')
 
-    with open(icon_path, "rb") as file:
+    with open(image_path, "rb") as file:
         file_content = file.read()
         etag = md5(file_content).hexdigest()
 
@@ -54,4 +54,4 @@ async def serve_icon(file_path: str, request: Request, response: Response):
     elif file_extension in {".jpeg", ".jpg"}:
         content_type = "image/jpeg"
 
-    return FileResponse(icon_path, media_type=content_type)
+    return FileResponse(image_path, media_type=content_type)
