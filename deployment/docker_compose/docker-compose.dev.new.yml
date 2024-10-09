@@ -104,7 +104,7 @@ services:
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_HOST=${LANGFUSE_HOST:-}
       # Image location config
-      - STATIC_DIRECTORY=${ICON_DIRECTORY:-/static}
+      - STATIC_DIRECTORY=${STATIC_DIRECTORY:-/static}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
