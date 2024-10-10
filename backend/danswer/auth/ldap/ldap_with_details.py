@@ -1,4 +1,4 @@
-from ldap3 import Server, Connection, ALL, NTLM
+from ldap3 import Server, Connection, ALL, NTLM, SUBTREE
 import getpass
 
 
@@ -63,11 +63,52 @@ class LDAPAuthenticator:
 
         return response
 
+    def get_users_in_group(self, username, password, group_dn):
+        try:
+            # NTLM format requires DOMAIN\username
+            user_dn = f"{self.domain.split('.')[0]}\\{username}"  # 'int' part of 'int.mydomain.com'
+
+            # Create the LDAP server object
+            server = Server(self.server_address, get_info=ALL)
+
+            # Create the connection object with NTLM authentication
+            conn = Connection(server, user=user_dn, password=password, authentication=NTLM)
+
+            # Attempt to bind (authenticate)
+            if conn.bind():
+
+                # Fetch the full name, first name, and email from LDAP
+                conn.search(search_base=self.ldap_search_base,
+                            search_filter=f"(sAMAccountName={username})",
+                            attributes=['cn', 'givenName', 'mail'])
+
+                # Search for members of the given group
+                conn.search(search_base=group_dn,
+                            search_filter="(objectClass=group)",
+                            search_scope=SUBTREE,
+                            attributes=['member'])
+
+                # Extract members from the search result
+                if conn.entries:
+                    members = conn.entries[0]['member']
+                    print(f"Users in the group {group_dn}:")
+                    for member in members:
+                        print(member)
+                    return members
+                else:
+                    print(f"No users found in the group {group_dn}")
+                    return []
+
+        except Exception as e:
+            print(f"An error occurred while fetching group members: {e}")
+            return []
+
 
 def main():
     # Read configuration from the .env file
     ldap_server = "ldap://dc01.int.taqniat.ae"
     domain = "int.taqniat.ae"
+    group_dn = "CN=SpectraUsers,OU=SpectraAI,DC=int,DC=taqniat,DC=ae"
 
     if not ldap_server or not domain:
         print("Error: Missing LDAP_SERVER or DOMAIN in .env file.")
@@ -84,6 +125,8 @@ def main():
         print(f"Access granted. Welcome, {response.full_name} ({response.email}).")
     else:
         print(f"Access denied. Error: {response.error_msg}")
+
+    authenticator.get_users_in_group(username=username, password=password, group_dn=group_dn)
 
 
 if __name__ == "__main__":
