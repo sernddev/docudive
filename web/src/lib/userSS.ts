@@ -77,6 +77,8 @@ export const getAuthUrlSS = async (authType: AuthType): Promise<string> => {
       return "";
     case "basic":
       return "";
+    case "ldap":
+      return "";
     case "google_oauth": {
       return await getGoogleOAuthUrlSS();
     }

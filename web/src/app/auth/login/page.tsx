@@ -84,7 +84,7 @@ const Page = async ({
               />
             </>
           )}
-          {authTypeMetadata?.authType === "basic" && (
+          {(authTypeMetadata?.authType === "basic" || authTypeMetadata?.authType === "ldap")&& (
             <Card className="mt-4 w-96">
               <div className="flex">
                 <Title className="mb-2 mx-auto font-bold">

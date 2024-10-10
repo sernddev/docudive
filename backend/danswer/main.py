@@ -344,12 +344,6 @@ def get_application() -> FastAPI:
             prefix="/auth",
             tags=["auth"],
         )
-        include_router_with_global_prefix_prepended(
-            application,
-            fastapi_users.get_logout_router(auth_backend),
-            prefix="/auth",
-            tags=["auth"],
-        )
     elif AUTH_TYPE == AuthType.GOOGLE_OAUTH:
         oauth_client = GoogleOAuth2(OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET)
         include_router_with_global_prefix_prepended(
