@@ -72,6 +72,13 @@ from danswer.tools.email.compose_email_tool import ComposeEmailTool, COMPOSE_EMA
 
 logger = setup_logger()
 
+TOOL_RESPONSE_IDS = {
+    SqlGenerationTool._NAME: SQL_GENERATION_RESPONSE_ID,
+    SummaryGenerationTool._NAME: SUMMARY_GENERATION_RESPONSE_ID,
+    ComposeEmailTool._NAME: COMPOSE_EMAIL_RESPONSE_ID,
+    ExcelAnalyzerTool._NAME: EXCEL_ANALYZER_RESPONSE_ID,
+    FileDataInfographicsTool._NAME: FILE_DATA_INFOGRAPHICS_RESPONSE_ID,
+}
 
 def _get_answer_stream_processor(
     context_docs: list[LlmDoc],
@@ -261,26 +268,23 @@ class Answer:
 
             if tool.name in {SearchTool._NAME, InternetSearchTool._NAME}:
                 self._update_prompt_builder_for_search_tool(prompt_builder, [])
-            elif tool.name == SqlGenerationTool._NAME:
+            elif tool.name in {
+                SqlGenerationTool._NAME,
+                SummaryGenerationTool._NAME,
+                ComposeEmailTool._NAME,
+                ExcelAnalyzerTool._NAME,
+                FileDataInfographicsTool._NAME,
+            }:
+                responses = []
+                expected_response_id = TOOL_RESPONSE_IDS[tool.name]
                 for response in tool_runner.tool_responses():
-                    if response.id == SQL_GENERATION_RESPONSE_ID:
+                    if response.id == expected_response_id:
                         res1 = yield response.response
-                        return [DanswerAnswerPiece(answer_piece=res1)]
-            elif tool.name == SummaryGenerationTool._NAME:
-                for response in tool_runner.tool_responses():
-                    if response.id == SUMMARY_GENERATION_RESPONSE_ID:
-                        res1 = yield response.response
-                        return [DanswerAnswerPiece(answer_piece=res1)]
-            elif tool.name == ComposeEmailTool._NAME:
-                for response in tool_runner.tool_responses():
-                    if response.id == COMPOSE_EMAIL_RESPONSE_ID:
-                        res1 = yield response.response
-                        return [DanswerAnswerPiece(answer_piece=res1)]
-            elif tool.name == ExcelAnalyzerTool._NAME:
-                for response in tool_runner.tool_responses():
-                    if response.id == EXCEL_ANALYZER_RESPONSE_ID:
-                        res1 = yield response.response
-                        return [DanswerAnswerPiece(answer_piece=res1)]
+                        responses.append(DanswerAnswerPiece(answer_piece=res1))
+                    else:
+                        yield response  # Yield other responses if any
+
+                return responses
             elif tool.name == ImageGenerationTool._NAME:
                 prompt_builder.update_user_prompt(
                     build_image_generation_user_prompt(
@@ -417,31 +421,23 @@ class Answer:
                     img_urls=img_urls,
                 )
             )
-        elif tool.name == SqlGenerationTool._NAME:
+        elif tool.name in {
+            SqlGenerationTool._NAME,
+            SummaryGenerationTool._NAME,
+            ComposeEmailTool._NAME,
+            ExcelAnalyzerTool._NAME,
+            FileDataInfographicsTool._NAME,
+        }:
+            responses = []
+            expected_response_id = TOOL_RESPONSE_IDS[tool.name]
             for response in tool_runner.tool_responses():
-                if response.id == SQL_GENERATION_RESPONSE_ID:
+                if response.id == expected_response_id:
                     res1 = yield response.response
-                    return [DanswerAnswerPiece(answer_piece=res1)]
-        elif tool.name == SummaryGenerationTool._NAME:
-            for response in tool_runner.tool_responses():
-                if response.id == SUMMARY_GENERATION_RESPONSE_ID:
-                    res1 = yield response.response
-                    return [DanswerAnswerPiece(answer_piece=res1)]
-        elif tool.name == ComposeEmailTool._NAME:
-            for response in tool_runner.tool_responses():
-                if response.id == COMPOSE_EMAIL_RESPONSE_ID:
-                    res1 = yield response.response
-                    return [DanswerAnswerPiece(answer_piece=res1)]
-        elif tool.name == ExcelAnalyzerTool._NAME:
-            for response in tool_runner.tool_responses():
-                if response.id == EXCEL_ANALYZER_RESPONSE_ID:
-                    res1 = yield response.response
-                    return [DanswerAnswerPiece(answer_piece=res1)]
-        elif tool.name == FileDataInfographicsTool._NAME:
-            for response in tool_runner.tool_responses():
-                if response.id == FILE_DATA_INFOGRAPHICS_RESPONSE_ID:
-                    res1 = yield response.response
-                    return [DanswerAnswerPiece(answer_piece=res1)]
+                    responses.append(DanswerAnswerPiece(answer_piece=res1))
+                else:
+                    yield response  # Yield other responses if any
+
+            return responses
         else:
             prompt_builder.update_user_prompt(
                 HumanMessage(

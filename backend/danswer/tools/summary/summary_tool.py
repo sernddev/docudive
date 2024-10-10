@@ -13,8 +13,7 @@ from danswer.dynamic_configs.interface import JSON_ro
 from danswer.file_store.models import InMemoryChatFile
 from danswer.llm.answering.prompts.build import AnswerPromptBuilder, default_build_system_message, \
     default_build_user_message
-from danswer.llm.utils import message_to_string, _build_content, get_max_input_tokens, get_default_llm_tokenizer, \
-    filter_non_english_arabic, filter_chinese_characters
+from danswer.llm.utils import message_generator_to_string_generator, _build_content, get_max_input_tokens, get_default_llm_tokenizer
 from danswer.prompts.constants import GENERAL_SEP_PAT
 from danswer.tools.summary.split_by_sentence_tokens import split_section_by_tokens
 from danswer.tools.tool import Tool
@@ -158,7 +157,8 @@ class SummaryGenerationTool(Tool):
                 ]
             }
         )
-
+    
+    
     def run(self, **kwargs: str) -> Generator[ToolResponse, None, None]:
         query = cast(str, kwargs["query"])
         llm_config = self.llm_config
@@ -180,11 +180,8 @@ class SummaryGenerationTool(Tool):
         prompt_builder.update_system_prompt(
             default_build_system_message(self.prompt_config)
         )
-        summaries = []
         message_content = _build_content(query, self.files)
 
-        #sections = self.split_text_by_paragraphs(message_content)
-        #sections = message_content.split('\n\n')
         sections = split_section_by_tokens(message_content, max_tokens, buffer_percent=0.3, encode_fn=encode_fn, decode_fn = decode_fn)
 
         for section in sections:
@@ -195,14 +192,13 @@ class SummaryGenerationTool(Tool):
             )
             prompt = prompt_builder.build()
 
-            summaries.append(filter_chinese_characters( message_to_string(
-                self.llm.invoke(prompt=prompt)
-            )))
-
-        yield ToolResponse(
-            id=SUMMARY_GENERATION_RESPONSE_ID,
-            response = " ".join(summaries)
-        )
+            for result in message_generator_to_string_generator(
+                self.llm.stream(prompt=prompt)
+            ):
+                yield ToolResponse(
+                    id=SUMMARY_GENERATION_RESPONSE_ID,
+                    response = result
+                )
 
     def split_text_by_paragraphs(self, text):
         """Split text into chunks of paragraphs with a buffer for previous summaries."""
