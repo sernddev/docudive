@@ -76,6 +76,58 @@ class LDAPAuthenticator:
 
             # Attempt to bind (authenticate)
             if conn.bind():
+                # Search for members of the given group
+                conn.search(search_base=group_dn,
+                            search_filter="(objectClass=group)",
+                            search_scope=SUBTREE,
+                            attributes=['member'])
+
+                # Extract members from the search result
+                if conn.entries:
+                    members_dn = conn.entries[0]['member']
+                    user_details = []
+                    print(f"Users in the group {group_dn}:")
+
+                    # Loop through each member's distinguished name (DN) to fetch their details
+                    for member_dn in members_dn:
+                        # Search for user details using the member DN
+                        conn.search(search_base=member_dn,
+                                    search_filter="(objectClass=user)",
+                                    search_scope=SUBTREE,
+                                    attributes=['sAMAccountName', 'givenName', 'cn', 'mail'])
+
+                        # If user details are found, extract the required attributes
+                        if conn.entries:
+                            user_info = {
+                                'sAMAccountName': str(conn.entries[0]['sAMAccountName']),
+                                'first_name': str(conn.entries[0]['givenName']),
+                                'full_name': str(conn.entries[0]['cn']),
+                                'email': str(conn.entries[0]['mail']) if 'mail' in conn.entries[0] else 'N/A'
+                            }
+                            user_details.append(user_info)
+                            print(user_info)
+
+                    return user_details
+                else:
+                    print(f"No users found in the group {group_dn}")
+                    return []
+
+        except Exception as e:
+            print(f"An error occurred while fetching group members: {e}")
+            return []
+    def get_users_in_group_1(self, username, password, group_dn):
+        try:
+            # NTLM format requires DOMAIN\username
+            user_dn = f"{self.domain.split('.')[0]}\\{username}"  # 'int' part of 'int.mydomain.com'
+
+            # Create the LDAP server object
+            server = Server(self.server_address, get_info=ALL)
+
+            # Create the connection object with NTLM authentication
+            conn = Connection(server, user=user_dn, password=password, authentication=NTLM)
+
+            # Attempt to bind (authenticate)
+            if conn.bind():
 
                 # Fetch the full name, first name, and email from LDAP
                 conn.search(search_base=self.ldap_search_base,
