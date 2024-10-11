@@ -1,5 +1,11 @@
+# Ensure all required environment variables are set or have defaults
+: "${DOMAIN:=localhost}"
+: "${PROXY_READ_TIMEOUT:=600s}"
+: "${PROXY_CONNECT_TIMEOUT:=600s}"
+: "${PROXY_SEND_TIMEOUT:=600s}"
+: "${SEND_TIMEOUT:=600s}"
 # fill in the template
-envsubst '$DOMAIN $SSL_CERT_FILE_NAME $SSL_CERT_KEY_FILE_NAME' < "/etc/nginx/conf.d/$1" > /etc/nginx/conf.d/app.conf
+envsubst '$DOMAIN $PROXY_READ_TIMEOUT $PROXY_CONNECT_TIMEOUT $PROXY_SEND_TIMEOUT $SEND_TIMEOUT $SSL_CERT_FILE_NAME $SSL_CERT_KEY_FILE_NAME' < "/etc/nginx/conf.d/$1" > /etc/nginx/conf.d/app.conf
 
 # wait for the api_server to be ready
 echo "Waiting for API server to boot up; this may take a minute or two..."

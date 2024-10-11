@@ -398,7 +398,11 @@ services:
       - api_server
       - web_server
     environment:
-      - DOMAIN=localhost
+      - DOMAIN=${DOMAIN:-localhost}
+      - PROXY_READ_TIMEOUT=${PROXY_READ_TIMEOUT:-600s}
+      - PROXY_CONNECT_TIMEOUT=${PROXY_CONNECT_TIMEOUT:-600s}
+      - PROXY_SEND_TIMEOUT=${PROXY_SEND_TIMEOUT:-600s}
+      - SEND_TIMEOUT=${SEND_TIMEOUT:-600s}
     ports:
       - "80:80"
       - "3000:80"  # allow for localhost:3000 usage, since that is the norm
