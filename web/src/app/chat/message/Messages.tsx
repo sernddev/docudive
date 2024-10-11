@@ -249,18 +249,21 @@ export const AIMessage = ({
                   </>
                 )}
 
-              {toolCall &&
+              {toolCall && !content && !isComplete &&
                 !TOOLS_WITH_CUSTOM_HANDLING.includes(toolCall.tool_name) && (
                   <div className="my-2">
-                    <ToolRunDisplay
-                      toolName={
-                        toolCall.tool_result && content
-                          ? `Used "${toolCall.tool_name}"`
-                          : `Using "${toolCall.tool_name}"`
-                      }
-                      toolLogo={<FiTool size={15} className="my-auto mr-1" />}
-                      isRunning={!toolCall.tool_result || !content}
-                    />
+                    <div className="text-sm my-auto">
+                      <ThreeDots
+                        height="30"
+                        width="50"
+                        color="#3b82f6"
+                        ariaLabel="grid-loading"
+                        radius="12.5"
+                        wrapperStyle={{}}
+                        wrapperClass=""
+                        visible={true}
+                      />
+                    </div>
                   </div>
                 )}
 
