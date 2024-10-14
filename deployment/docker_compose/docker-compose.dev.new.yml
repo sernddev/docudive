@@ -354,6 +354,33 @@ services:
       - "5432:5432"
     volumes:
       - ../data/db_volume:/var/lib/postgresql/data
+  audit-server:
+    build:
+      context: ../../backend/audit
+      dockerfile: Dockerfile
+    container_name: audit-server
+    command: uvicorn audit_server:app --host 0.0.0.0 --port 9099 --reload
+    volumes:
+      - ../../backend/audit:/app
+    working_dir: /app
+    ports:
+      - "9099:9099"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db/audit_db
+    depends_on:
+      - audit_db
+
+  audit_db:
+    image: postgres:15.2-alpine
+    container_name: audit-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: audit_db
+    ports:
+      - "5532:5432"
+    volumes:
+      - ../data/audit_db_volume:/var/lib/postgresql/data
 
   pgadmin:
     #container_name: pgadmin_container

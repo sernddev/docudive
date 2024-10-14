@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+databases
+sqlalchemy
+asyncpg
+psycopg2-binary

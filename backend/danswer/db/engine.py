@@ -18,6 +18,8 @@ from danswer.configs.app_configs import POSTGRES_HOST
 from danswer.configs.app_configs import POSTGRES_PASSWORD
 from danswer.configs.app_configs import POSTGRES_PORT
 from danswer.configs.app_configs import POSTGRES_USER
+from danswer.db.audit_db import add_audit_listeners
+from danswer.db.models import Base
 from danswer.utils.logger import setup_logger
 
 logger = setup_logger()
@@ -114,5 +116,6 @@ async def warm_up_connections(
     for async_conn in async_connections:
         await async_conn.close()
 
+    add_audit_listeners(Base)
 
 SessionFactory = sessionmaker(bind=get_sqlalchemy_engine())
