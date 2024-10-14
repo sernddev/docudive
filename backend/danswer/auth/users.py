@@ -58,7 +58,7 @@ from danswer.utils.telemetry import RecordType
 from danswer.utils.variable_functionality import (
     fetch_versioned_implementation,
 )
-
+from shared_configs.shared_context import user_id_context
 
 logger = setup_logger()
 
@@ -326,7 +326,8 @@ async def double_check_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied. User is not verified.",
         )
-
+    # Set user_id in the context variable if the user is valid
+    user_id_context.set(user.id if user else "anonymous")
     return user
 
 
