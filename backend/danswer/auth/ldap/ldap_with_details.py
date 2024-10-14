@@ -50,6 +50,7 @@ class LDAPAuthenticator:
 
                 if conn.entries:
                     entry = conn.entries[0]
+                    response.login_id = username
                     response.full_name = entry.cn.value if hasattr(entry, 'cn') else None
                     response.first_name = entry.givenName.value if hasattr(entry, 'givenName') else None
                     response.email = entry.mail.value if hasattr(entry, 'mail') else None
@@ -115,6 +116,7 @@ class LDAPAuthenticator:
         except Exception as e:
             print(f"An error occurred while fetching group members: {e}")
             return []
+
     def get_users_in_group_1(self, username, password, group_dn):
         try:
             # NTLM format requires DOMAIN\username

@@ -27,6 +27,12 @@ class PluginInfoStore(BaseModel):
     is_favorite: bool = False
     is_arabic: bool = False
 
+class UserInfoStore(BaseModel):
+    loginid: str | None = None
+    email: str | None = None
+    first_name: str | None = None
+    full_name: str | None = None
+
 
 class Settings(BaseModel):
     """General settings"""
