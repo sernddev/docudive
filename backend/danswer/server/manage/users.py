@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from danswer.auth.invited_users import get_invited_users
 from danswer.auth.invited_users import write_invited_users
-from danswer.auth.ldap.ldap_with_details import  LDAPAuthenticator
+from danswer.auth.ldap.ldap_with_details import LDAPAuthenticator, LDAPResponseModel
 from danswer.auth.noauth_user import fetch_no_auth_user
 from danswer.auth.noauth_user import set_no_auth_user_preferences
 from danswer.auth.schemas import UserRole
@@ -187,7 +187,7 @@ def ldap_load_users(
         ldap_admin_password: LdapAdminPassWord,
         current_user: User | None = Depends(current_admin_user),
         db_session: Session = Depends(get_session),
-) -> str:
+) -> list[LDAPResponseModel]:
     if current_user is None:
         raise HTTPException(
             status_code=400, detail="Auth is disabled, cannot load users"

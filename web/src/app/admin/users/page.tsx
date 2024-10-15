@@ -181,9 +181,10 @@ const ActivateLdapUsersButton = ({
         && key.startsWith("/api/manage/load_ldap_users")
     );
     const result =(await res.json())
+    //Todo: show results -each user wise
     setModal(false);
     setPopup({
-      message: "Users activated!",
+      message: "Users added!",
       type: "success",
     });
   };

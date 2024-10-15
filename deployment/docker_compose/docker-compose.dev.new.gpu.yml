@@ -107,6 +107,10 @@ services:
       - IMAGE_SERVER=${IMAGE_SERVER:-192.168.1.74}
       - IMAGE_SERVER_PROTOCOL=${IMAGE_SERVER_PROTOCOL:-http}
       - IMAGE_SERVER_PORT=${IMAGE_SERVER_PORT:-9123}
+       # LDAP configuration
+      - LDAP_SERVER=${LDAP_SERVER:-}
+      - LDAP_DOMAIN=${LDAP_DOMAIN:-}
+      - GROUP_DNS=${GROUP_DNS:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

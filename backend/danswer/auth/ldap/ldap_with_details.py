@@ -1,30 +1,30 @@
 from typing import Any
 
+from fastapi import HTTPException
 from fastapi_users.password import PasswordHelper
 from ldap3 import Server, Connection, ALL, NTLM, SUBTREE
 import getpass
+
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from danswer.auth.schemas import UserRole
-from danswer.configs.app_configs import GROUP_DNS
 from danswer.db.models import User
 from danswer.server.settings.models import UserInfoStore
 from danswer.server.settings.store import store_user_info
 from fastapi_users import exceptions
 
-class LDAPResponseModel:
-    def __init__(self, is_authenticated=False, error_msg=None, full_name=None, first_name=None, email=None,
-                 login_id=None):
-        self.is_authenticated = is_authenticated
-        self.error_msg = error_msg
-        self.full_name = full_name
-        self.first_name = first_name
-        self.email = email
-        self.login_id = login_id
+from danswer.utils.logger import setup_logger
 
-    def __repr__(self):
-        return f"LDAPResponseModel(is_authenticated={self.is_authenticated}, error_msg={self.error_msg}, full_name={self.full_name}, first_name={self.first_name}, email={self.email}, login_id={self.login_id})"
+logger = setup_logger()
 
+class LDAPResponseModel(BaseModel):
+    is_authenticated:bool= False
+    error_msg:str| None = ""
+    full_name:str| None = None
+    first_name:str| None = None
+    email:str| None = None
+    login_id:str| None = None
 
 def check_if_any_missing_fields(ldap_user:User):
     missing_fields = []
@@ -82,6 +82,7 @@ class LDAPAuthenticator:
             # Attempt to bind (authenticate)
             if conn.bind():
                 response.is_authenticated = True
+                logger.info("user authenticated")
 
                 # Fetch the full name, first name, and email from LDAP
                 conn.search(search_base=self.ldap_search_base,
@@ -94,6 +95,7 @@ class LDAPAuthenticator:
                     response.full_name = entry.cn.value if hasattr(entry, 'cn') else None
                     response.first_name = entry.givenName.value if hasattr(entry, 'givenName') else None
                     response.email = entry.mail.value if hasattr(entry, 'mail') else None
+                conn.unbind()
             else:
                 response.is_authenticated = False
                 response.error_msg = conn.result.get('description', 'Authentication failed')
@@ -118,15 +120,22 @@ class LDAPAuthenticator:
 
             # Attempt to bind (authenticate)
             if conn.bind():
+                #logger.info(self.group_dn)
+                logger.info("user authenticated")
                 # Search for members of the given group
-                conn.search(search_base=GROUP_DNS,
+                conn.search(search_base=self.group_dn,
                             search_filter="(objectClass=group)",
                             search_scope=SUBTREE,
                             attributes=['member'])
-
+                logger.info("group search finished")
                 # Extract members from the search result
                 if conn.entries:
-                    members_dn = conn.entries[0]['member']
+                    grpEntry=conn.entries[0]
+                    members_dn= grpEntry.member if hasattr(grpEntry, 'member') else None
+                    if members_dn is None:
+                        raise HTTPException(status_code=404, detail="member not found in Group DN")
+
+                    #members_dn = conn.entries[0]['member']
                     user_details = []
                     print(f"Users in the group {self.group_dn}:")
 
@@ -142,13 +151,15 @@ class LDAPAuthenticator:
                         if conn.entries:
                             entry = conn.entries[0]
                             user = LDAPResponseModel()
-                            user.login_id = entry.cn.value if hasattr(entry, 'sAMAccountName') else None
+                            user.login_id = entry.sAMAccountName.value if hasattr(entry, 'sAMAccountName') else None
                             user.full_name = entry.cn.value if hasattr(entry, 'cn') else None
                             user.first_name = entry.givenName.value if hasattr(entry, 'givenName') else None
                             user.email = entry.mail.value if hasattr(entry, 'mail') else None
                             user_details.append(user)
                             print(user)
+                            logger.info(user)
 
+                    conn.unbind()
                     return user_details
                 else:
                     print(f"No users found in the group {self.group_dn}")
@@ -157,7 +168,7 @@ class LDAPAuthenticator:
         except Exception as e:
             print(f"An error occurred while fetching group members: {e}")
             return []
-
+    
     def activate_ldap_users(self,users:list[Any], db_session: Session) -> list[any]:
         users_result =[]
         for user in users:
@@ -197,7 +208,6 @@ class LDAPAuthenticator:
 
         return users_result
 
-
 def main():
     # Read configuration from the .env file
     ldap_server = "ldap://dc01.int.taqniat.ae"
@@ -212,7 +222,7 @@ def main():
     username = input("Enter username: ")
     password = getpass.getpass("Enter password: ")
 
-    authenticator = LDAPAuthenticator(ldap_server, domain)
+    authenticator = LDAPAuthenticator(ldap_server, domain, group_dn)
     response = authenticator.authenticate(username, password)
 
     if response.is_authenticated:
@@ -220,7 +230,7 @@ def main():
     else:
         print(f"Access denied. Error: {response.error_msg}")
 
-    authenticator.get_users_in_group(username=username, password=password, group_dn=group_dn)
+    authenticator.get_users_in_group(username=username, password=password)
 
 
 if __name__ == "__main__":
