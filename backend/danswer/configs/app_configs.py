@@ -312,3 +312,4 @@ ENTERPRISE_EDITION_ENABLED = (
 
 LDAP_SERVER = os.environ.get("LDAP_SERVER") or "ldap://dc01.int.taqniat.ae"
 LDAP_DOMAIN = os.environ.get("LDAP_DOMAIN") or "int.taqniat.ae"
+GROUP_DNS = os.environ.get("GROUP_DNS") or "int.taqniat.ae"

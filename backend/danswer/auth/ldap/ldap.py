@@ -1,4 +1,3 @@
-import json
 import os
 from typing import Tuple
 
@@ -14,13 +13,13 @@ from fastapi_users.openapi import OpenAPIResponseType
 from fastapi_users.router.common import ErrorCode, ErrorModel
 
 from danswer.auth.ldap.ldap_with_details import LDAPAuthenticator, LDAPResponseModel
-from danswer.auth.schemas import UserCreate, UserRole
+from danswer.auth.schemas import  UserRole
 from danswer.db.models import User
 from danswer.configs.app_configs import LDAP_SERVER, LDAP_DOMAIN, GROUP_DNS
 from fastapi_users import exceptions
 
 from danswer.server.settings.models import UserInfoStore
-from danswer.server.settings.store import store_key_value, store_user_info
+from danswer.server.settings.store import store_user_info
 
 os.environ['SUPER_USER']="NO_USER"
 
@@ -138,7 +137,8 @@ async def create_first_superuser(db_session:Session,
         db_session.add(new_user)
         db_session.commit()
         os.environ['SUPER_USER'] = ldap_response.login_id
-    except exceptions.UserAlreadyExists:
+    except exceptions.UserAlreadyExists or exceptions.Any:
+        db_session.rollback()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive Super Users in the system.",

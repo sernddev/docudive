@@ -1,6 +1,16 @@
+from typing import Any
+
+from fastapi_users.password import PasswordHelper
 from ldap3 import Server, Connection, ALL, NTLM, SUBTREE
 import getpass
+from sqlalchemy.orm import Session
 
+from danswer.auth.schemas import UserRole
+from danswer.configs.app_configs import GROUP_DNS
+from danswer.db.models import User
+from danswer.server.settings.models import UserInfoStore
+from danswer.server.settings.store import store_user_info
+from fastapi_users import exceptions
 
 class LDAPResponseModel:
     def __init__(self, is_authenticated=False, error_msg=None, full_name=None, first_name=None, email=None,
@@ -16,11 +26,41 @@ class LDAPResponseModel:
         return f"LDAPResponseModel(is_authenticated={self.is_authenticated}, error_msg={self.error_msg}, full_name={self.full_name}, first_name={self.first_name}, email={self.email}, login_id={self.login_id})"
 
 
+def check_if_any_missing_fields(ldap_user:User):
+    missing_fields = []
+
+    if ldap_user.email is None:
+        missing_fields.append("email")
+    if ldap_user.full_name is None:
+        missing_fields.append("full_name")
+    if ldap_user.login_id is None:
+        missing_fields.append("loginid")
+    if ldap_user.first_name is None:
+        missing_fields.append("first_name")
+
+    if missing_fields:
+        ldap_user.error_msg = f"Missing userinfo ({', '.join(missing_fields)}) from LDAP server"
+        return True
+
+    return False
+
+
+def check_if_user_already_exists(ldap_user:User, db_session: Session):
+    user = db_session.query(User).filter(User.email == ldap_user.email,User.is_active==True).first()  # type: ignore
+    if user is None:
+        return False
+
+    ldap_user.error_msg = f"user already exists in the system"
+    return True
+
+
 class LDAPAuthenticator:
-    def __init__(self, server_address, domain):
+    def __init__(self, server_address, domain,group_dn=None):
         self.server_address = server_address
         self.domain = domain
         self.ldap_search_base = self._domain_to_ldap_format(domain)
+        self.group_dn = group_dn
+
 
     def _domain_to_ldap_format(self, domain):
         """Convert a domain like 'int.mydomain.com' into 'DC=int,DC=mydomain,DC=com'."""
@@ -64,7 +104,8 @@ class LDAPAuthenticator:
 
         return response
 
-    def get_users_in_group(self, username, password, group_dn):
+    def get_users_in_group(self, username, password):
+
         try:
             # NTLM format requires DOMAIN\username
             user_dn = f"{self.domain.split('.')[0]}\\{username}"  # 'int' part of 'int.mydomain.com'
@@ -78,7 +119,7 @@ class LDAPAuthenticator:
             # Attempt to bind (authenticate)
             if conn.bind():
                 # Search for members of the given group
-                conn.search(search_base=group_dn,
+                conn.search(search_base=GROUP_DNS,
                             search_filter="(objectClass=group)",
                             search_scope=SUBTREE,
                             attributes=['member'])
@@ -87,7 +128,7 @@ class LDAPAuthenticator:
                 if conn.entries:
                     members_dn = conn.entries[0]['member']
                     user_details = []
-                    print(f"Users in the group {group_dn}:")
+                    print(f"Users in the group {self.group_dn}:")
 
                     # Loop through each member's distinguished name (DN) to fetch their details
                     for member_dn in members_dn:
@@ -99,63 +140,62 @@ class LDAPAuthenticator:
 
                         # If user details are found, extract the required attributes
                         if conn.entries:
-                            user_info = {
-                                'sAMAccountName': str(conn.entries[0]['sAMAccountName']),
-                                'first_name': str(conn.entries[0]['givenName']),
-                                'full_name': str(conn.entries[0]['cn']),
-                                'email': str(conn.entries[0]['mail']) if 'mail' in conn.entries[0] else 'N/A'
-                            }
-                            user_details.append(user_info)
-                            print(user_info)
+                            entry = conn.entries[0]
+                            user = LDAPResponseModel()
+                            user.login_id = entry.cn.value if hasattr(entry, 'sAMAccountName') else None
+                            user.full_name = entry.cn.value if hasattr(entry, 'cn') else None
+                            user.first_name = entry.givenName.value if hasattr(entry, 'givenName') else None
+                            user.email = entry.mail.value if hasattr(entry, 'mail') else None
+                            user_details.append(user)
+                            print(user)
 
                     return user_details
                 else:
-                    print(f"No users found in the group {group_dn}")
+                    print(f"No users found in the group {self.group_dn}")
                     return []
 
         except Exception as e:
             print(f"An error occurred while fetching group members: {e}")
             return []
 
-    def get_users_in_group_1(self, username, password, group_dn):
-        try:
-            # NTLM format requires DOMAIN\username
-            user_dn = f"{self.domain.split('.')[0]}\\{username}"  # 'int' part of 'int.mydomain.com'
+    def activate_ldap_users(self,users:list[Any], db_session: Session) -> list[any]:
+        users_result =[]
+        for user in users:
+            if check_if_any_missing_fields(user):
+                users_result.append(user)
+                continue
+            try:
+                if check_if_user_already_exists(user,db_session):
+                    users_result.append(user)
+                    continue
+                passwordHelper = PasswordHelper()
+                new_user = User(email=user.email,
+                                hashed_password=passwordHelper.hash(user.login_id),
+                                is_active=True,
+                                role=UserRole.BASIC
+                                )
+                db_session.add(new_user)
+                db_session.commit()
+            except exceptions.UserAlreadyExists or exceptions.Any:
+                db_session.rollback()
+                user.error_msg ="user already exists in the system"
+                users_result.append(user)
+                continue
+            try:
+                user_key=f"USER_INFO_{user.email}"
+                userinfo = UserInfoStore(email= user.email,
+                                         loginid= user.login_id,
+                                         first_name=user.first_name,
+                                         full_name= user.full_name)
 
-            # Create the LDAP server object
-            server = Server(self.server_address, get_info=ALL)
+                store_user_info(key=user_key,user_info= userinfo)
+                users_result.append(user)
+            except Any:
+                user.error_msg="failed to save in user keystore"
+                users_result.append(user)
+                continue
 
-            # Create the connection object with NTLM authentication
-            conn = Connection(server, user=user_dn, password=password, authentication=NTLM)
-
-            # Attempt to bind (authenticate)
-            if conn.bind():
-
-                # Fetch the full name, first name, and email from LDAP
-                conn.search(search_base=self.ldap_search_base,
-                            search_filter=f"(sAMAccountName={username})",
-                            attributes=['cn', 'givenName', 'mail'])
-
-                # Search for members of the given group
-                conn.search(search_base=group_dn,
-                            search_filter="(objectClass=group)",
-                            search_scope=SUBTREE,
-                            attributes=['member'])
-
-                # Extract members from the search result
-                if conn.entries:
-                    members = conn.entries[0]['member']
-                    print(f"Users in the group {group_dn}:")
-                    for member in members:
-                        print(member)
-                    return members
-                else:
-                    print(f"No users found in the group {group_dn}")
-                    return []
-
-        except Exception as e:
-            print(f"An error occurred while fetching group members: {e}")
-            return []
+        return users_result
 
 
 def main():
