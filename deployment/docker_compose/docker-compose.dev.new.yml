@@ -103,10 +103,8 @@ services:
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_HOST=${LANGFUSE_HOST:-}
-      # Image server config
-      - IMAGE_SERVER=${IMAGE_SERVER:-192.168.1.28}
-      - IMAGE_SERVER_PROTOCOL=${IMAGE_SERVER_PROTOCOL:-http}
-      - IMAGE_SERVER_PORT=${IMAGE_SERVER_PORT:-9123}
+      # Image location config
+      - STATIC_DIRECTORY=${STATIC_DIRECTORY:-/static}
       # LDAP configuration
       - LDAP_SERVER=${LDAP_SERVER:-}
       - LDAP_DOMAIN=${LDAP_DOMAIN:-}
@@ -116,7 +114,6 @@ services:
     volumes:
       - ../../backend:/code
       - ../../web/public:/static
-      - /elk/imageserver/web/images:/images
     logging:
       driver: json-file
       options:
@@ -251,6 +248,7 @@ services:
       args:
         - NEXT_PUBLIC_DISABLE_STREAMING=${NEXT_PUBLIC_DISABLE_STREAMING:-false}
         - NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA=${NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA:-true}
+        - ALLOW_SIGNUP=${ALLOW_SIGNUP:-false}
         - NEXT_PUBLIC_POSITIVE_PREDEFINED_FEEDBACK_OPTIONS=${NEXT_PUBLIC_POSITIVE_PREDEFINED_FEEDBACK_OPTIONS:-}
         - NEXT_PUBLIC_NEGATIVE_PREDEFINED_FEEDBACK_OPTIONS=${NEXT_PUBLIC_NEGATIVE_PREDEFINED_FEEDBACK_OPTIONS:-}
         - NEXT_PUBLIC_DISABLE_LOGOUT=${NEXT_PUBLIC_DISABLE_LOGOUT:-}
@@ -360,6 +358,33 @@ services:
       - "5432:5432"
     volumes:
       - ../data/db_volume:/var/lib/postgresql/data
+  audit-server:
+    build:
+      context: ../../backend/audit
+      dockerfile: Dockerfile
+    container_name: audit-server
+    command: uvicorn audit_server:app --host 0.0.0.0 --port 9099 --reload
+    volumes:
+      - ../../backend/audit:/app
+    working_dir: /app
+    ports:
+      - "9099:9099"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db/audit_db
+    depends_on:
+      - audit_db
+
+  audit_db:
+    image: postgres:15.2-alpine
+    container_name: audit-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: audit_db
+    ports:
+      - "5532:5432"
+    volumes:
+      - ../data/audit_db_volume:/var/lib/postgresql/data
 
   pgadmin:
     #container_name: pgadmin_container
@@ -425,16 +450,6 @@ services:
       /bin/sh -c "dos2unix /etc/nginx/conf.d/run-nginx.sh 
       && /etc/nginx/conf.d/run-nginx.sh app.conf.template.dev"
 
-  imageserver:
-    image: nginx:latest
-    container_name: imageserver
-    ports:
-      - "9123:80"
-    volumes:
-      - /elk/imageserver/web/images:/usr/share/nginx/html/images:ro
-      - ./imageserver_nginx.conf:/etc/nginx/nginx.conf:ro
-      - /elk/imageserver/logs:/var/log/nginx:rw
-    restart: unless-stopped
   portainer:
     image: portainer/portainer-ce:latest
     container_name: portainer
