@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from danswer.auth.invited_users import get_invited_users
 from danswer.auth.invited_users import write_invited_users
+from danswer.auth.ldap.ldap_with_details import LDAPAuthenticator, LDAPResponseModel
 from danswer.auth.noauth_user import fetch_no_auth_user
 from danswer.auth.noauth_user import set_no_auth_user_preferences
 from danswer.auth.schemas import UserRole
@@ -18,7 +19,7 @@ from danswer.auth.schemas import UserStatus
 from danswer.auth.users import current_admin_user
 from danswer.auth.users import current_user
 from danswer.auth.users import optional_user
-from danswer.configs.app_configs import AUTH_TYPE
+from danswer.configs.app_configs import AUTH_TYPE, GROUP_DNS, LDAP_SERVER, LDAP_DOMAIN
 from danswer.configs.app_configs import VALID_EMAIL_DOMAINS
 from danswer.configs.constants import AuthType
 from danswer.db.engine import get_session
@@ -26,6 +27,7 @@ from danswer.db.models import User
 from danswer.db.users import get_user_by_email
 from danswer.db.users import list_users
 from danswer.dynamic_configs.factory import get_dynamic_config_store
+from danswer.server.documents.models import LdapAdminPassWord
 from danswer.server.manage.models import AllUsersResponse
 from danswer.server.manage.models import UserByEmail
 from danswer.server.manage.models import UserInfo
@@ -33,6 +35,8 @@ from danswer.server.manage.models import UserRoleResponse
 from danswer.server.models import FullUserSnapshot
 from danswer.server.models import InvitedUserSnapshot
 from danswer.server.models import MinimalUserSnapshot
+from danswer.server.settings.api import USER_INFO_KEY
+from danswer.server.settings.store import load_user_info
 from danswer.utils.logger import setup_logger
 from ee.danswer.db.api_key import is_api_key_email_address
 from fastapi_users.password import PasswordHelper
@@ -177,6 +181,27 @@ def list_all_users(
         accepted_pages=accepted_count // USERS_PAGE_SIZE + 1,
         invited_pages=invited_count // USERS_PAGE_SIZE + 1,
     )
+
+@router.post("/manage/load_ldap_users")
+def ldap_load_users(
+        ldap_admin_password: LdapAdminPassWord,
+        current_user: User | None = Depends(current_admin_user),
+        db_session: Session = Depends(get_session),
+) -> list[LDAPResponseModel]:
+    if current_user is None:
+        raise HTTPException(
+            status_code=400, detail="Auth is disabled, cannot load users"
+        )
+    key = f"{USER_INFO_KEY}{current_user.email}"
+    admin_userinfo = load_user_info(key)
+    ldap_authenticator: LDAPAuthenticator = LDAPAuthenticator(LDAP_SERVER, LDAP_DOMAIN, GROUP_DNS)
+    user_list = ldap_authenticator.get_users_in_group(username= admin_userinfo.loginid,
+                                   password=ldap_admin_password.password)
+    user_results=[]
+    if user_list is not None:
+        user_results= ldap_authenticator.activate_ldap_users(users= user_list, db_session= db_session)
+
+    return user_results
 
 
 @router.put("/manage/admin/users")

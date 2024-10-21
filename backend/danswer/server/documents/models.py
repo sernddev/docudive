@@ -102,6 +102,9 @@ class CredentialBase(BaseModel):
     # if `true`, then all Admins will have access to the credential
     admin_public: bool
 
+class LdapAdminPassWord(BaseModel):
+    password: str
+
 
 class CredentialSnapshot(CredentialBase):
     id: int

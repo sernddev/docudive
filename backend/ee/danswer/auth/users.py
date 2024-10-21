@@ -28,7 +28,7 @@ async def optional_user_(
     db_session: Session,
 ) -> User | None:
     # Check if the user has a session cookie from SAML
-    if AUTH_TYPE == AuthType.SAML:
+    if AUTH_TYPE == AuthType.SAML or AuthType.LDAP:
         saved_cookie = extract_hashed_cookie(request)
 
         if saved_cookie:

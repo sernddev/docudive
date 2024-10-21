@@ -28,19 +28,19 @@ export function EmailPasswordForm({
       {popup}
       <Formik
         initialValues={{
-          email: "",
+          loginid: "",
           password: "",
           name: ""
         }}
         validationSchema={Yup.object().shape({
-          email: Yup.string().email().required(),
+          loginid: Yup.string().required(),
           password: Yup.string().required(),
         })}
         onSubmit={async (values) => {
           if (isSignup) {
             // login is fast, no need to show a spinner
             setIsWorking(true);
-            const response = await basicSignup(values.email, values.password);
+            const response = await basicSignup(values.loginid, values.password);
 
             if (!response.ok) {
               const errorDetail = (await response.json()).detail;
@@ -61,10 +61,10 @@ export function EmailPasswordForm({
             }
           }
 
-          const loginResponse = await basicLogin(values.email, values.password);
+          const loginResponse = await basicLogin(values.loginid, values.password);
           if (loginResponse.ok) {
             if (isSignup && shouldVerify) {
-              await requestEmailVerification(values.email);
+              //await requestEmailVerification(values.email);
               router.push("/auth/waiting-on-verification");
             } else {
               
@@ -76,7 +76,7 @@ export function EmailPasswordForm({
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  key: values.email,
+                  key: values.loginid,
                   value: values.name,
                   }),
                 });
@@ -89,8 +89,11 @@ export function EmailPasswordForm({
             const errorDetail = (await loginResponse.json()).detail;
 
             let errorMsg = "Unknown error";
+            if (errorDetail != null && errorDetail != "") {
+              errorMsg = errorDetail;
+            }
             if (errorDetail === "LOGIN_BAD_CREDENTIALS") {
-              errorMsg = "Invalid email or password";
+              errorMsg = "Invalid login Id or password";
             }
             setPopup({
               type: "error",
@@ -109,10 +112,9 @@ export function EmailPasswordForm({
               />: ''
             }
             <TextFormField
-              name="email"
-              label="Email"
-              type="email"
-              placeholder="email@yourcompany.com"
+              name="loginid"
+              label="Login Id"
+              placeholder="enter your login id"
             />
             <TextFormField
               name="password"
