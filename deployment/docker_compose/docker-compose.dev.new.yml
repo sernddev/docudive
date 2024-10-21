@@ -362,7 +362,6 @@ services:
     build:
       context: ../../backend/audit
       dockerfile: Dockerfile
-    container_name: audit-server
     command: uvicorn audit_server:app --host 0.0.0.0 --port 9099 --reload
     volumes:
       - ../../backend/audit:/app
@@ -370,13 +369,12 @@ services:
     ports:
       - "9099:9099"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db/audit_db
+      - DATABASE_URL=postgresql://postgres:postgres@audit_db/audit_db
     depends_on:
       - audit_db
 
   audit_db:
-    image: postgres:15.2-alpine
-    container_name: audit-db
+    image: docudive/relational_db:v1
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -387,8 +385,6 @@ services:
       - ../data/audit_db_volume:/var/lib/postgresql/data
 
   pgadmin:
-    #container_name: pgadmin_container
-    container_name: pgadmin_container
     image: dpage/pgadmin4
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@v.com}
@@ -452,7 +448,6 @@ services:
 
   portainer:
     image: portainer/portainer-ce:latest
-    container_name: portainer
     ports:
       - "3457:9000"
     command: -H unix:///var/run/docker.sock
