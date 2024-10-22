@@ -81,6 +81,7 @@ WORKDIR /app
 
 # Enterprise Version Files
 COPY ./ee /app/ee
+COPY ./extn /app/extn
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Set up application files

@@ -83,7 +83,7 @@ def create_update_persona(
         )
 
         versioned_make_persona_private = fetch_versioned_implementation(
-            "danswer.db.persona", "make_persona_private"
+            "danswer.db.persona", "make_persona_private", True
         )
 
         # Privatize Persona

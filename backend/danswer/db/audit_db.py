@@ -19,10 +19,9 @@ def sync_log_changes(mapper, connection, target, operation, audit_stage):
     # Get the primary key column(s) for the target table
     primary_key_columns = [key.name for key in inspect(target).mapper.primary_key]
 
-    primary_key_values = {key: getattr(target, key) for key in primary_key_columns}
+    primary_key_values = str({key: getattr(target, key) for key in primary_key_columns})
 
     record_id = json.dumps(primary_key_values) if primary_key_values else None
-
     try:
         loop = asyncio.get_running_loop()
         if loop.is_running():

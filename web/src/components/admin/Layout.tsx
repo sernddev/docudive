@@ -202,29 +202,25 @@ export async function Layout({ children }: { children: React.ReactNode }) {
                       </div>
                     ),
                     link: "/admin/users",
+                  },                 
+                  {
+                    name: (
+                      <div className="flex">
+                        <GroupsIcon size={18} />
+                        <div className="ml-1">Groups</div>
+                      </div>
+                    ),
+                    link: "/admin/groups",
                   },
-                  ...(SERVER_SIDE_ONLY__PAID_ENTERPRISE_FEATURES_ENABLED
-                    ? [
-                        {
-                          name: (
-                            <div className="flex">
-                              <GroupsIcon size={18} />
-                              <div className="ml-1">Groups</div>
-                            </div>
-                          ),
-                          link: "/admin/groups",
-                        },
-                        {
-                          name: (
-                            <div className="flex">
-                              <KeyIcon size={18} />
-                              <div className="ml-1">API Keys</div>
-                            </div>
-                          ),
-                          link: "/admin/api-key",
-                        },
-                      ]
-                    : []),
+                  // {
+                  //   name: (
+                  //     <div className="flex">
+                  //       <KeyIcon size={18} />
+                  //       <div className="ml-1">API Keys</div>
+                  //     </div>
+                  //   ),
+                  //   link: "/admin/api-key",
+                  // },
                   {
                     name: (
                       <div className="flex">

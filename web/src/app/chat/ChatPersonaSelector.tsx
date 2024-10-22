@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { checkUserIdOwnsAssistant } from "@/lib/assistants/checkOwnership";
 import { getAssistantIcon } from "@/lib/constants";
-import { useEffect, useState } from "react";
 import { useIcon } from "@/lib/hooks";
 import { fetchAssistantIcon } from "@/lib/assistants/fetchAssitantIcons";
+import {  User } from "@/lib/types";
+
 const fetchIcon = async (id: any, callback: Function)=> {
   const iconURL = await fetchAssistantIcon(id);
   callback(iconURL);
@@ -76,12 +77,12 @@ export function ChatPersonaSelector({
   personas,
   selectedPersonaId,
   onPersonaChange,
-  userId,
+  user
 }: {
   personas: Persona[];
   selectedPersonaId: number | null;
   onPersonaChange: (persona: Persona | null) => void;
-  userId: string | undefined;
+  user: User | null;
 }) {
   const router = useRouter();
 
@@ -115,7 +116,7 @@ export function ChatPersonaSelector({
         >
           {personas.map((persona) => {
             const isSelected = persona.id === selectedPersonaId;
-            const isOwner = checkUserIdOwnsAssistant(userId, persona);
+            const isOwner = checkUserIdOwnsAssistant(user?.id, persona);
             return (
               <PersonaItem
                 key={persona.id}
@@ -135,18 +136,20 @@ export function ChatPersonaSelector({
             );
           })}
 
-          <div className="border-t border-border pt-2">
-            <DefaultDropdownElement
-              name={
-                <div className="flex items-center">
-                  <FiPlusSquare className="mr-2" />
-                  New Plugin
-                </div>
-              }
-              onSelect={() => router.push("/assistants/new")}
-              isSelected={false}
-            />
-          </div>
+          { (user?.role === "admin") &&
+            <div className="border-t border-border pt-2">
+              <DefaultDropdownElement
+                name={
+                  <div className="flex items-center">
+                    <FiPlusSquare className="mr-2" />
+                    New Plugin
+                  </div>
+                }
+                onSelect={() => router.push("/assistants/new")}
+                isSelected={false}
+              />
+            </div>
+          }
         </div>
       }
     >
