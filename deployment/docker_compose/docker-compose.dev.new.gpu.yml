@@ -109,6 +109,9 @@ services:
       - LDAP_SERVER=${LDAP_SERVER:-}
       - LDAP_DOMAIN=${LDAP_DOMAIN:-}
       - GROUP_DNS=${GROUP_DNS:-}
+      # AUDIT configuration
+      - AUDIT_URL=${AUDIT_URL:-}
+      - AUDIT_ACTIONS=${AUDIT_ACTIONS:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

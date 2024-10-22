@@ -3,6 +3,7 @@ import contextlib
 import json
 from datetime import datetime
 
+from danswer.configs.app_configs import AUDIT_URL, AUDIT_ACTIONS
 from shared_configs.shared_context import user_id_context
 from sqlalchemy import event
 from sqlalchemy import inspect
@@ -52,17 +53,18 @@ async def log_changes(mapper, connection, target, operation, audit_stage,record_
             "operation": operation,
             "audit_stage": audit_stage,
             "record_id": record_id,
-               "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.utcnow().isoformat(),
             "changes": changes
         }
 
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.post("http://192.168.1.27:9099/log", json=audit_entry)
+                response = await client.post(f"{AUDIT_URL}/log", json=audit_entry)
                 response.raise_for_status()  # Raises an error for non-2xx responses
         except Exception as e:
             # Optionally log or handle failures in sending to the audit server
             print(f"Failed to send audit log: {e}")
+            logger.error(f"Failed to send audit log: {e}")
 
 
     except Exception as ex:
@@ -135,24 +137,31 @@ def add_audit_listeners(Base):
         cls = mapper.class_
         if hasattr(cls, '__tablename__') and cls.__tablename__ != 'audit_logs':
             # Add event listeners for before insert, update, delete
-            event.listen(cls, 'before_insert',
+            if "BEFORE_INSERT" in AUDIT_ACTIONS:
+                event.listen(cls, 'before_insert',
                          lambda mapper, connection, target: sync_log_changes(mapper, connection, target, 'INSERT',
                                                                              'before'))
-            event.listen(cls, 'before_update',
+            if "BEFORE_UPDATE" in AUDIT_ACTIONS:
+                event.listen(cls, 'before_update',
                          lambda mapper, connection, target: sync_log_changes(mapper, connection, target, 'UPDATE',
                                                                              'before'))
-            event.listen(cls, 'before_delete',
+            if "BEFORE_DELETE" in AUDIT_ACTIONS:
+                event.listen(cls, 'before_delete',
                          lambda mapper, connection, target: sync_log_changes(mapper, connection, target, 'DELETE',
                                                                              'before'))
 
-            # Add event listeners for after insert, update, delete
-            event.listen(cls, 'after_insert',
-                         lambda mapper, connection, target: sync_log_changes(mapper, connection, target, 'INSERT',
-                                                                             'after'))
-            event.listen(cls, 'after_update',
+            if "INSERT" in AUDIT_ACTIONS:
+                # Add event listeners for after insert, update, delete
+                event.listen(cls, 'after_insert',
+                             lambda mapper, connection, target: sync_log_changes(mapper, connection, target, 'INSERT',
+                                                                                 'after'))
+
+            if "UPDATE" in AUDIT_ACTIONS:
+                event.listen(cls, 'after_update',
                          lambda mapper, connection, target: sync_log_changes(mapper, connection, target, 'UPDATE',
                                                                              'after'))
-            event.listen(cls, 'after_delete',
+            if "DELETE" in AUDIT_ACTIONS:
+                event.listen(cls, 'after_delete',
                          lambda mapper, connection, target: sync_log_changes(mapper, connection, target, 'DELETE',
                                                                              'after'))
 

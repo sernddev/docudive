@@ -305,3 +305,8 @@ ENTERPRISE_EDITION_ENABLED = (
 LDAP_SERVER = os.environ.get("LDAP_SERVER") or "ldap://dc01.int.taqniat.ae"
 LDAP_DOMAIN = os.environ.get("LDAP_DOMAIN") or "int.taqniat.ae"
 GROUP_DNS = os.environ.get("GROUP_DNS") or "int.taqniat.ae"
+
+AUDIT_URL = os.environ.get("AUDIT_URL") or "http://audit-server:9099"
+AUDIT_ACTIONS = json.loads(
+    os.environ.get("AUDIT_ACTIONS", "[]")
+)
