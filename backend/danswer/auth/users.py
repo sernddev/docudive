@@ -52,6 +52,7 @@ from danswer.db.auth import get_user_db
 from danswer.db.engine import get_session
 from danswer.db.models import AccessToken
 from danswer.db.models import User
+from danswer.auth.ldap.ldap import get_ldap_auth_router
 from danswer.utils.logger import setup_logger
 from danswer.utils.telemetry import optional_telemetry
 from danswer.utils.telemetry import RecordType
@@ -64,7 +65,7 @@ logger = setup_logger()
 
 
 def verify_auth_setting() -> None:
-    if AUTH_TYPE not in [AuthType.DISABLED, AuthType.BASIC, AuthType.GOOGLE_OAUTH]:
+    if AUTH_TYPE not in [AuthType.DISABLED, AuthType.BASIC,AuthType.LDAP, AuthType.GOOGLE_OAUTH]:
         raise ValueError(
             "User must choose a valid user authentication method: "
             "disabled, basic, or google_oauth"
@@ -89,7 +90,7 @@ def get_display_email(email: str | None, space_less: bool = False) -> str:
 def user_needs_to_be_verified() -> bool:
     # all other auth types besides basic should require users to be
     # verified
-    return AUTH_TYPE != AuthType.BASIC or REQUIRE_EMAIL_VERIFICATION
+    return (AUTH_TYPE != AuthType.BASIC and AUTH_TYPE != AuthType.LDAP) or REQUIRE_EMAIL_VERIFICATION
 
 
 def verify_email_in_whitelist(email: str) -> None:
@@ -273,6 +274,12 @@ class FastAPIUserWithLogoutRouter(FastAPIUsers[models.UP, models.ID]):
             return await backend.logout(strategy, user, token)
 
         return router
+
+    def get_ldap_auth_router(
+            self,
+            backend: AuthenticationBackend
+    ) -> APIRouter:
+        return get_ldap_auth_router(self, backend= backend)
 
 
 fastapi_users = FastAPIUserWithLogoutRouter[User, uuid.UUID](

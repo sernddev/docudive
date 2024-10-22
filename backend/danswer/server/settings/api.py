@@ -19,8 +19,8 @@ from danswer.db.models import User
 from danswer.db.persona import get_personas
 from danswer.server.settings.models import Settings, KeyValueStoreGeneric, PluginInfoStore
 
-from danswer.server.settings.store import load_settings, store_settings, store_key_value, load_key_value, \
-    delete_key_value_generic, get_image_from_key_store, load_plugin_info, store_plugin_info
+from danswer.server.settings.store import load_settings, store_settings, store_key_value,  \
+    delete_key_value_generic, get_image_from_key_store, load_plugin_info, store_plugin_info, load_user_info
 
 from danswer.utils.logger import setup_logger
 
@@ -62,10 +62,11 @@ def upsert_user_info(user_info: KeyValueStoreGeneric, _: User | None = Depends(c
 def get_user_info(key: str, _: User | None = Depends(current_user)) -> KeyValueStoreGeneric:
     key = f"{USER_INFO_KEY}{key}"
     logger.info(f"Getting USER_INFO from Key_Value_Store with key : {key}")
-    kvstore = load_key_value(key)
-    if kvstore is None:
-        kvstore = KeyValueStoreGeneric(key=key, value="'Your Name' not provided")
-    return kvstore
+    UserInfo = load_user_info(key)
+    if UserInfo is None:
+        return  KeyValueStoreGeneric(key=key, value="'Your Name' not provided")
+
+    return KeyValueStoreGeneric(key=key, value=UserInfo.full_name)
 
 
 @basic_router.delete('/user_info/{key}')

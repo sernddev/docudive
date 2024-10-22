@@ -18,6 +18,7 @@ import { ErrorCallout } from "@/components/ErrorCallout";
 import { HidableSection } from "@/app/admin/assistants/HidableSection";
 import BulkAdd from "@/components/admin/users/BulkAdd";
 import { UsersResponse } from "@/lib/users/interfaces";
+import EnterPasswordModal from "@/components/admin/users/EnterPasswordModal";
 
 const ValidDomainsDisplay = ({ validDomains }: { validDomains: string[] }) => {
   if (!validDomains.length) {
@@ -148,7 +149,11 @@ const SearchableTables = () => {
 
       <div className="flex flex-col gap-y-4">
         <div className="flex gap-x-4">
-          <AddUserButton setPopup={setPopup} />
+
+            <ActivateLdapUsersButton setPopup={setPopup} />
+
+            <AddUserButton setPopup={setPopup} />
+
           <div className="flex-grow">
             <SearchBar
               query={query}
@@ -160,6 +165,57 @@ const SearchableTables = () => {
         <UsersTables q={q} setPopup={setPopup} />
       </div>
     </div>
+  );
+};
+
+const ActivateLdapUsersButton = ({
+                                   setPopup,
+                                 }: {
+  setPopup: (spec: PopupSpec) => void;
+}) => {
+  const [modal, setModal] = useState(false);
+
+  const onSuccess = async(res:Response) => {
+    mutate(
+      (key) => typeof key === "string"
+        && key.startsWith("/api/manage/load_ldap_users")
+    );
+    const result =(await res.json())
+    //Todo: show results -each user wise
+    setModal(false);
+    setPopup({
+      message: "Users added!",
+      type: "success",
+    });
+  };
+  const onFailure = async (res: Response) => {
+    const error = (await res.json()).detail;
+    setPopup({
+      message: `Failed to add users - ${error}`,
+      type: "error",
+    });
+  };
+
+  return (
+    <>
+      <Button className="w-fit" onClick={() => setModal(true)}>
+        <div className="flex">
+          Activate LDAP Users
+        </div>
+      </Button>
+
+      {modal && (
+        <Modal title="Activate Ldap Users" onOutsideClick={() => setModal(false)}>
+          <div className="flex flex-col gap-y-4">
+            <Text className="font-medium text-base">
+              Enter your login password for adding ldap users.
+            </Text>
+            <EnterPasswordModal onSuccess={onSuccess} onFailure={onFailure} />
+          </div>
+        </Modal>
+      )}
+
+    </>
   );
 };
 

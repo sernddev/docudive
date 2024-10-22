@@ -351,7 +351,13 @@ def get_application() -> FastAPI:
             prefix="/users",
             tags=["users"],
         )
-
+    elif AUTH_TYPE == AuthType.LDAP:
+        include_router_with_global_prefix_prepended(
+            application,
+            fastapi_users.get_ldap_auth_router(auth_backend),
+            prefix="/auth",
+            tags=["auth"],
+        )
     elif AUTH_TYPE == AuthType.GOOGLE_OAUTH:
         oauth_client = GoogleOAuth2(OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET)
         include_router_with_global_prefix_prepended(

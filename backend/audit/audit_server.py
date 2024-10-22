@@ -10,7 +10,7 @@ from typing import List
 import asyncio
 from sqlalchemy.sql import func
 from typing import Optional
-
+import os
 # Setup logging
 logging.basicConfig(filename='audit.log', level=logging.INFO, format='%(asctime)s %(message)s')
 
@@ -18,7 +18,7 @@ logging.basicConfig(filename='audit.log', level=logging.INFO, format='%(asctime)
 app = FastAPI()
 
 # Database configuration
-DATABASE_URL = "postgresql://postgres:postgres@db:5432/audit_db"
+DATABASE_URL = os.environ.get('DATABASE_URL')#"postgresql://postgres:postgres@db:5432/audit_db"
 
 # Initialize the Database and MetaData objects
 database = Database(DATABASE_URL)

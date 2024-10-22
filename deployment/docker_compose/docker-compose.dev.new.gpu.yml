@@ -102,9 +102,13 @@ services:
       - ENV_SEED_CONFIGURATION=${ENV_SEED_CONFIGURATION:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
-      - LANGFUSE_HOST=${LANGFUSE_HOST:-}      
+      - LANGFUSE_HOST=${LANGFUSE_HOST:-}
       # Image location config
       - STATIC_DIRECTORY=${STATIC_DIRECTORY:-/static}
+       # LDAP configuration
+      - LDAP_SERVER=${LDAP_SERVER:-}
+      - LDAP_DOMAIN=${LDAP_DOMAIN:-}
+      - GROUP_DNS=${GROUP_DNS:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -244,7 +248,7 @@ services:
       args:
         - NEXT_PUBLIC_DISABLE_STREAMING=${NEXT_PUBLIC_DISABLE_STREAMING:-false}
         - NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA=${NEXT_PUBLIC_NEW_CHAT_DIRECTS_TO_SAME_PERSONA:-true}
-        - ALLOW_SIGNUP=${ALLOW_SIGNUP:-true}
+        - ALLOW_SIGNUP=${ALLOW_SIGNUP:-false}
         - NEXT_PUBLIC_POSITIVE_PREDEFINED_FEEDBACK_OPTIONS=${NEXT_PUBLIC_POSITIVE_PREDEFINED_FEEDBACK_OPTIONS:-}
         - NEXT_PUBLIC_NEGATIVE_PREDEFINED_FEEDBACK_OPTIONS=${NEXT_PUBLIC_NEGATIVE_PREDEFINED_FEEDBACK_OPTIONS:-}
         - NEXT_PUBLIC_DISABLE_LOGOUT=${NEXT_PUBLIC_DISABLE_LOGOUT:-}
@@ -372,9 +376,33 @@ services:
     volumes:
       - /data/spectra_data/db_volume:/var/lib/postgresql/data
 
+  audit-server:
+    build:
+      context: ../../backend/audit
+      dockerfile: Dockerfile
+    command: uvicorn audit_server:app --host 0.0.0.0 --port 9099 --reload
+    volumes:
+      - ../../backend/audit:/app
+    working_dir: /app
+    ports:
+      - "9099:9099"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@audit_db/audit_db
+    depends_on:
+      - audit_db
+
+  audit_db:
+    image: docudive/relational_db:v1
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: audit_db
+    ports:
+      - "5532:5432"
+    volumes:
+      - /data/spectra_data/audit_db_volume:/var/lib/postgresql/data
+
   pgadmin:
-    #container_name: pgadmin_container
-    container_name: pgadmin_container
     image: dpage/pgadmin4
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@v.com}
@@ -435,10 +463,9 @@ services:
     command: > 
       /bin/sh -c "dos2unix /etc/nginx/conf.d/run-nginx.sh 
       && /etc/nginx/conf.d/run-nginx.sh app.conf.template.dev"
-    
+
   portainer:
     image: portainer/portainer-ce:latest
-    container_name: portainer
     ports:
       - "3457:9000"
     command: -H unix:///var/run/docker.sock
