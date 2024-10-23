@@ -30,11 +30,11 @@ def set_is_ee_based_on_env_variable() -> None:
 
 
 @functools.lru_cache(maxsize=128)
-def fetch_versioned_implementation(module: str, attribute: str) -> Any:
+def fetch_versioned_implementation(module: str, attribute: str, extn_used: bool = False) -> Any:
     logger.debug("Fetching versioned implementation for %s.%s", module, attribute)
     is_ee = global_version.get_is_ee_version()
 
-    module_full = f"ee.{module}" if is_ee else module
+    module_full = f"ee.{module}" if is_ee else f"extn.{module}" if extn_used else module
     try:
         return getattr(importlib.import_module(module_full), attribute)
     except ModuleNotFoundError:

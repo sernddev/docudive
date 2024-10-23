@@ -100,6 +100,10 @@ from shared_configs.configs import ENABLE_RERANKING_REAL_TIME_FLOW
 from shared_configs.configs import MODEL_SERVER_HOST
 from shared_configs.configs import MODEL_SERVER_PORT
 
+from extn.danswer.server.user_group.api import router as user_group_router
+from extn.danswer.server.analytics.api import router as analytics_router
+from extn.danswer.server.query_history.api import router as query_history_router
+from extn.danswer.server.api_key.api import router as api_key_router
 
 logger = setup_logger()
 
@@ -134,7 +138,7 @@ def value_error_handler(_: Request, exc: Exception) -> JSONResponse:
 
 
 def include_router_with_global_prefix_prepended(
-    application: FastAPI, router: APIRouter, **kwargs: Any
+        application: FastAPI, router: APIRouter, **kwargs: Any
 ) -> None:
     """Adds the global prefix to all routes in the router."""
     processed_global_prefix = f"/{APP_API_PREFIX.strip('/')}" if APP_API_PREFIX else ""
@@ -298,7 +302,17 @@ def get_application() -> FastAPI:
         application, token_rate_limit_settings_router
     )
 
-    # configure longfuse for llm
+    """ext endpoints /routers"""
+
+    # group access control
+    include_router_with_global_prefix_prepended(application, user_group_router)
+    # Analytics endpoints
+    include_router_with_global_prefix_prepended(application, analytics_router)
+    include_router_with_global_prefix_prepended(application, query_history_router)
+    # Api key management
+    include_router_with_global_prefix_prepended(application, api_key_router)
+
+    # configure langfuse for llm
     litellm.success_callback = ["langfuse"]
     litellm.failure_callback = ["langfuse"]
 
@@ -394,7 +408,6 @@ def get_application() -> FastAPI:
 # app is exportable
 set_is_ee_based_on_env_variable()
 app = fetch_versioned_implementation(module="danswer.main", attribute="get_application")
-
 
 if __name__ == "__main__":
     logger.info(

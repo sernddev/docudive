@@ -37,7 +37,6 @@ import { ToolSnapshot } from "@/lib/tools/interfaces";
 import { checkUserIsNoAuthUser } from "@/lib/user";
 import { addAssistantToList, saveAssistantInfo } from "@/lib/assistants/updateAssistantPreferences";
 import { checkLLMSupportsImageInput } from "@/lib/llm/utils";
-import { usePaidEnterpriseFeaturesEnabled } from "@/components/settings/usePaidEnterpriseFeaturesEnabled";
 import {
   TooltipProvider,
   Tooltip,
@@ -102,10 +101,7 @@ export function AssistantEditor({
 }) {
   const router = useRouter();
   const { popup, setPopup } = usePopup();
-
-  const isPaidEnterpriseFeaturesEnabled = usePaidEnterpriseFeaturesEnabled();
-
-  // EE only
+    
   const { data: userGroups, isLoading: userGroupsIsLoading } = useUserGroups();
 
   const [finalPrompt, setFinalPrompt] = useState<string | null>("");
@@ -1162,8 +1158,7 @@ export function AssistantEditor({
                     }} />
                   </div>
 
-                  {isPaidEnterpriseFeaturesEnabled &&
-                    userGroups &&
+                  {userGroups &&
                     (!user || user.role === "admin") && (
                       <>
                         <Divider />

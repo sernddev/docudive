@@ -14,7 +14,6 @@ import { SourceMetadata } from "./search/interfaces";
 import { destructureValue } from "./llm/utils";
 import { ChatSession } from "@/app/chat/interfaces";
 import { UsersResponse } from "./users/interfaces";
-import { usePaidEnterpriseFeaturesEnabled } from "@/components/settings/usePaidEnterpriseFeaturesEnabled";
 import { fetchAssistantIcon } from "./assistants/fetchAssitantIcons";
 
 const CREDENTIAL_URL = "/api/manage/admin/credential";
@@ -209,18 +208,6 @@ export const useUserGroups = (): {
   refreshUserGroups: () => void;
 } => {
   const swrResponse = useSWR<UserGroup[]>(USER_GROUP_URL, errorHandlingFetcher);
-  const isPaidEnterpriseFeaturesEnabled = usePaidEnterpriseFeaturesEnabled();
-
-  if (!isPaidEnterpriseFeaturesEnabled) {
-    return {
-      ...{
-        data: [],
-        isLoading: false,
-        error: "",
-      },
-      refreshUserGroups: () => {},
-    };
-  }
 
   return {
     ...swrResponse,

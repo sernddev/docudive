@@ -1299,7 +1299,7 @@ export function ChatPage({
                                   personas={filteredAssistants}
                                   selectedPersonaId={livePersona.id}
                                   onPersonaChange={onPersonaChange}
-                                  userId={user?.id}
+                                  user={user}
                                 />
                               </div>
 
