@@ -27,6 +27,8 @@ personas:
     # - no_decay
     # - auto (model chooses between favor_recent and base_decay based on user query)
     recency_bias: "auto"
+    # - whether the plugin is available to all users
+    is_public: false
     # Default Document Sets for this persona, specified as a list of names here.
     # If the document set by the name exists, it will be attached to the persona
     # If the document set by the name does not exist, it will be created as an empty document set with no connectors
@@ -48,6 +50,7 @@ personas:
     num_chunks: 0
     llm_relevance_filter: true
     llm_filter_extraction: true
+    is_public: false
     recency_bias: "auto"
     document_sets: []
 
@@ -61,5 +64,6 @@ personas:
     num_chunks: 10
     llm_relevance_filter: true
     llm_filter_extraction: true
+    is_public: false
     recency_bias: "auto"
     document_sets: []
