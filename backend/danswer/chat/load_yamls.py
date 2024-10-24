@@ -94,7 +94,7 @@ def load_personas_from_yaml(
                 prompt_ids=prompt_ids,
                 document_set_ids=doc_set_ids,
                 default_persona=True,
-                is_public=True,
+                is_public=persona.get("is_public"),
                 db_session=db_session,
             )
 
